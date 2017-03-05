@@ -20,61 +20,15 @@ use std::io;
 use nom::{alpha, multispace, digit, IResult};
 
 #[derive(Debug,PartialEq,Eq)]
-enum Words {
+struct Word {
+    word: String,
+    score: u8
+}
+
+#[derive(Debug,PartialEq,Eq)]
+enum RawWord {
     Junk,
-    Word(Vec<u8>)
-}
-
-fn array_to_vec(arr: &[u8]) -> Vec<u8> {
-     arr.iter().cloned().collect()
-}
-
-named!(get_word<Words>,
-    alt!(
-        alpha  => { |word| Words::Word(array_to_vec(word)) } |
-        alt!(multispace | digit | is_a!(", !;:.()\"'-?|&"))  => { |_| Words::Junk }
-    )
-);
-
-fn io_str_error<T: std::error::Error + std::marker::Send + std::marker::Sync + 'static>(se: T) -> std::io::Error {
-    return io::Error::new(io::ErrorKind::Other, se);
-}
-
-fn get_words(filename: &str) -> Result<Vec<String>, io::Error> {
-    let mut f = try!(File::open(filename));
-    let mut buffer = Vec::new();
-    try!(f.read_to_end(&mut buffer));
-    let mut result = Vec::new();
-    let mut remaining = buffer.as_slice();
-    loop {
-        match get_word(remaining) {
-            IResult::Done(further, word) => {
-                match word {
-                    Words::Junk => {},
-                    Words::Word(word) => {
-                        let string_word = std::str::from_utf8(&word).map_err(io_str_error)?;
-                        result.push(String::from(string_word).to_lowercase());
-                    }
-                }
-                remaining = further;
-            }
-            rest => {
-                match rest {
-                    nom::IResult::Error(nom::verbose_errors::Err::Position(_, characters)) => {
-                        let location = std::str::from_utf8(characters).map_err(io_str_error)?;
-                        return Err(io::Error::new(io::ErrorKind::Other, format!("Don't know how to parse: {}", location.chars().take(50).collect::<String>())));
-                    },
-                    _ => {}
-                };
-                
-                //rest.to_result().map_err(io_str_error)?;
-            }
-        }
-        if remaining.len() == 0 {
-            break;
-        }
-    }
-    return Ok(result);
+    Word(Word)
 }
 
 fn score(word: &str) -> u8 {
@@ -93,6 +47,55 @@ fn score(word: &str) -> u8 {
         }
     }
     return result;
+}
+
+named!(get_word<RawWord>,
+    alt!(
+        alpha => { |word| {
+                let word = String::from(std::str::from_utf8(word).unwrap());
+                let sc = score(&word);
+                RawWord::Word(Word{word:word, score:sc})
+            }
+        } |
+        alt!(multispace | digit | is_a!(", !;:.()\"'-?|&"))  => { |_| RawWord::Junk }
+    )
+);
+
+fn io_str_error<T: std::error::Error + std::marker::Send + std::marker::Sync + 'static>(se: T) -> std::io::Error {
+    return io::Error::new(io::ErrorKind::Other, se);
+}
+
+fn get_words(filename: &str) -> Result<Vec<Word>, io::Error> {
+    let mut f = try!(File::open(filename));
+    let mut buffer = Vec::new();
+    try!(f.read_to_end(&mut buffer));
+    let mut result = Vec::new();
+    let mut remaining = buffer.as_slice();
+    loop {
+        match get_word(remaining) {
+            IResult::Done(further, word) => {
+                if let RawWord::Word(x) = word {
+                    result.push(x);
+                }
+                remaining = further;
+            }
+            rest => {
+                match rest {
+                    nom::IResult::Error(nom::verbose_errors::Err::Position(_, characters)) => {
+                        let location = std::str::from_utf8(characters).map_err(io_str_error)?;
+                        return Err(io::Error::new(io::ErrorKind::InvalidData, format!("Don't know how to parse: {}", location.chars().take(50).collect::<String>())));
+                    },
+                    _ => {}
+                };
+                
+                //rest.to_result().map_err(io_str_error)?;
+            }
+        }
+        if remaining.len() == 0 {
+            break;
+        }
+    }
+    return Ok(result);
 }
 
 enum_from_primitive! {
@@ -123,16 +126,16 @@ fn action(act: u8) -> Command {
     }
 }
 
-fn run_beatnik(words: Vec<String>, scores: Vec<u8>) {
+fn run_beatnik(words: Vec<Word>) {
     let mut stack: Vec<u8> = Vec::new();
     let mut pc: usize = 0;
     loop {
-        debug!("'{}' = {} ({:?})", words[pc], scores[pc], action(scores[pc]));
-        match action(scores[pc]) {
+        debug!("'{}' = {} ({:?})", words[pc].word, words[pc].score, action(words[pc].score));
+        match action(words[pc].score) {
             Command::PUSH => {
                 pc +=1;
-                debug!("Pushing {} to stack", scores[pc]);
-                stack.push(scores[pc]);
+                debug!("Pushing {} to stack", words[pc].score);
+                stack.push(words[pc].score);
             }
             Command::DISCARD => {stack.pop().expect("stack value");},
             Command::ADD => {
@@ -165,42 +168,42 @@ fn run_beatnik(words: Vec<String>, scores: Vec<u8>) {
                 let check = stack.pop().expect("check value");
                 pc +=1;
                 if check != 0 {
-                    pc += scores[pc] as usize;
+                    pc += words[pc].score as usize;
                 }
             }
             Command::SKIP_AHEAD_ZERO => {
                 let check = stack.pop().expect("check value");
                 pc +=1;
                 if check == 0 {
-                    pc += scores[pc] as usize;
+                    pc += words[pc].score as usize;
                 }
             }
             Command::SKIP_BACK_ZERO => {
                 let check = stack.pop().expect("check value");
                 if check == 0 {
-                    pc -= scores[pc+1] as usize;
+                    pc -= words[pc+1].score as usize;
                 }
             }
             Command::SKIP_BACK_NONZERO => {
                 let check = stack.pop().expect("check value");
                 if check != 0 {
-                    pc -= scores[pc+1] as usize;
+                    pc -= words[pc+1].score as usize;
                 }
             }
             Command::STOP => break,
             Command::NOP => {}
         }
         pc += 1;
-        if pc == scores.len() {
+        if pc == words.len() {
             break;
         }
     }
     debug!("Stack: {:?}", stack);
 }
 
-fn output_wottasquare(scores: Vec<u8>) {
-    for score in scores {
-        println!("[{}:{:?}]", score, action(score));
+fn output_wottasquare(words: Vec<Word>) {
+    for word in words {
+        println!("[{}:{:?}]", word.score, action(word.score));
     }
 }
 
@@ -210,21 +213,40 @@ fn main() {
                           .version("1.0")
                           .author("Tom Parker <palfrey@tevp.net>")
                           .about("Beatnik interpreter")
-                          .arg(Arg::with_name("wottasquare")
+                          .arg(Arg::with_name("output-wottasquare")
                                .short("w")
-                               .long("wottasquare")
+                               .long("output-wottasquare")
                                .help("Switches into wottasquare output mode"))
+                          .arg(Arg::with_name("input-wottasquare")
+                               .short("i")
+                               .long("input-wottasquare")
+                               .help("Switches into wottasquare input mode"))
                           .arg(Arg::with_name("INPUT")
                                .help("Sets the input file to use")
                                .required(true)
                                .index(1))
                           .get_matches();
-    let words = get_words(matches.value_of("INPUT").unwrap()).unwrap();
-    let scores: Vec<u8> = words.iter().map(|w| score(&w)).collect();
-    if matches.is_present("wottasquare") {
-        output_wottasquare(scores);
+    let words = if matches.is_present("input-wottasquare") {
+        (Vec::new())
     }
     else {
-        run_beatnik(words, scores);
+        match get_words(matches.value_of("INPUT").unwrap()) {
+            Ok(val) => val,
+            Err(err) => {
+                if err.kind() == io::ErrorKind::InvalidData {
+                    println!("{}", err.get_ref().unwrap());
+                    std::process::exit(-1);
+                }
+                else {
+                    panic!("Error during parsing: {}", err);
+                }
+            }
+        }
+    };
+    if matches.is_present("output-wottasquare") {
+        output_wottasquare(words);
+    }
+    else {
+        run_beatnik(words);
     }
 }

@@ -6,13 +6,15 @@ extern crate env_logger;
 #[macro_use]
 extern crate enum_primitive;
 extern crate num_traits;
+#[macro_use]
+extern crate clap;
+use clap::{Arg, App};
 
 use num_traits::FromPrimitive;
 
 use std::fs::File;
 use std::io::Read;
 use std::io;
-use std::env;
 
 // Needed because of https://github.com/Geal/nom/issues/345
 use nom::{alpha, multispace, digit, IResult};
@@ -121,11 +123,8 @@ fn action(act: u8) -> Command {
     }
 }
 
-fn main() {
-    env_logger::init().unwrap();
+fn run_beatnik(words: Vec<String>, scores: Vec<u8>) {
     let mut stack: Vec<u8> = Vec::new();
-    let words = get_words(&env::args().nth(1).unwrap()).unwrap();
-    let scores: Vec<u8> = words.iter().map(|w| score(&w)).collect();
     let mut pc: usize = 0;
     loop {
         debug!("'{}' = {} ({:?})", words[pc], scores[pc], action(scores[pc]));
@@ -197,4 +196,35 @@ fn main() {
         }
     }
     debug!("Stack: {:?}", stack);
+}
+
+fn output_wottasquare(scores: Vec<u8>) {
+    for score in scores {
+        println!("[{}:{:?}]", score, action(score));
+    }
+}
+
+fn main() {
+    env_logger::init().unwrap();
+    let matches = App::new("peacenik")
+                          .version("1.0")
+                          .author("Tom Parker <palfrey@tevp.net>")
+                          .about("Beatnik interpreter")
+                          .arg(Arg::with_name("wottasquare")
+                               .short("w")
+                               .long("wottasquare")
+                               .help("Switches into wottasquare output mode"))
+                          .arg(Arg::with_name("INPUT")
+                               .help("Sets the input file to use")
+                               .required(true)
+                               .index(1))
+                          .get_matches();
+    let words = get_words(matches.value_of("INPUT").unwrap()).unwrap();
+    let scores: Vec<u8> = words.iter().map(|w| score(&w)).collect();
+    if matches.is_present("wottasquare") {
+        output_wottasquare(scores);
+    }
+    else {
+        run_beatnik(words, scores);
+    }
 }

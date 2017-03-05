@@ -15,9 +15,10 @@ use num_traits::FromPrimitive;
 use std::fs::File;
 use std::io::Read;
 use std::io;
+use std::str::FromStr;
 
 // Needed because of https://github.com/Geal/nom/issues/345
-use nom::{alpha, multispace, digit, IResult};
+use nom::{alpha, multispace, digit, IResult, newline};
 
 #[derive(Debug,PartialEq,Eq)]
 struct Word {
@@ -61,18 +62,38 @@ named!(get_word<RawWord>,
     )
 );
 
+named!(get_wotta<RawWord>,
+    map!(tuple!(
+        tag!("["),
+        digit,
+        opt!(
+            tuple!(
+                tag!(":"),
+                is_not!("]")
+            )
+        ),
+        tag!("]"),
+        opt!(newline)
+    ), |(_, raw_score, comment_opt, _, _)|{
+        let word = String::from(std::str::from_utf8((comment_opt as Option<(&[u8], &[u8])>).unwrap().1).unwrap());
+        RawWord::Word(Word{word: word, score: u8::from_str(std::str::from_utf8(raw_score).unwrap()).unwrap()})
+        })
+);
+
 fn io_str_error<T: std::error::Error + std::marker::Send + std::marker::Sync + 'static>(se: T) -> std::io::Error {
     return io::Error::new(io::ErrorKind::Other, se);
 }
 
-fn get_words(filename: &str) -> Result<Vec<Word>, io::Error> {
+fn get_words_core<F>(filename: &str, mut function: F) -> Result<Vec<Word>, io::Error>
+    where F: FnMut(&[u8]) -> nom::IResult<&[u8], RawWord>
+{
     let mut f = try!(File::open(filename));
     let mut buffer = Vec::new();
     try!(f.read_to_end(&mut buffer));
     let mut result = Vec::new();
     let mut remaining = buffer.as_slice();
     loop {
-        match get_word(remaining) {
+        match function(remaining) {
             IResult::Done(further, word) => {
                 if let RawWord::Word(x) = word {
                     result.push(x);
@@ -87,8 +108,6 @@ fn get_words(filename: &str) -> Result<Vec<Word>, io::Error> {
                     },
                     _ => {}
                 };
-                
-                //rest.to_result().map_err(io_str_error)?;
             }
         }
         if remaining.len() == 0 {
@@ -96,6 +115,14 @@ fn get_words(filename: &str) -> Result<Vec<Word>, io::Error> {
         }
     }
     return Ok(result);
+}
+
+fn get_words(filename: &str) -> Result<Vec<Word>, io::Error> {
+    return get_words_core(filename, get_word);
+}
+
+fn get_wottas(filename: &str) -> Result<Vec<Word>, io::Error> {
+    return get_words_core(filename, get_wotta);
 }
 
 enum_from_primitive! {
@@ -226,20 +253,21 @@ fn main() {
                                .required(true)
                                .index(1))
                           .get_matches();
-    let words = if matches.is_present("input-wottasquare") {
-        (Vec::new())
+    let items = if matches.is_present("input-wottasquare") {
+        get_wottas(matches.value_of("INPUT").unwrap())
     }
     else {
-        match get_words(matches.value_of("INPUT").unwrap()) {
-            Ok(val) => val,
-            Err(err) => {
-                if err.kind() == io::ErrorKind::InvalidData {
-                    println!("{}", err.get_ref().unwrap());
-                    std::process::exit(-1);
-                }
-                else {
-                    panic!("Error during parsing: {}", err);
-                }
+        get_words(matches.value_of("INPUT").unwrap())
+    };
+    let words = match items {
+        Ok(val) => val,
+        Err(err) => {
+            if err.kind() == io::ErrorKind::InvalidData {
+                println!("{}", err.get_ref().unwrap());
+                std::process::exit(-1);
+            }
+            else {
+                panic!("Error during parsing: {}", err);
             }
         }
     };

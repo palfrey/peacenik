@@ -54,7 +54,7 @@ named!(get_word<RawWord>,
     alt!(
         alpha => { |word| {
                 let word = String::from(std::str::from_utf8(word).unwrap());
-                let sc = score(&word);
+                let sc = score(&word.to_lowercase());
                 RawWord::Word(Word{word:word, score:sc})
             }
         } |

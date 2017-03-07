@@ -10,6 +10,7 @@ extern crate num_traits;
 extern crate clap;
 
 mod runner;
+mod common;
 use clap::{App, Arg, SubCommand};
 use std::io;
 
@@ -30,12 +31,13 @@ fn main() {
             .required(true)
             .index(1))
         .get_matches();
+    let input_fname = matches.value_of("INPUT").unwrap();
     match matches.subcommand_name() {
         Some("run") | Some("wottasquare") => {
             let items = if matches.is_present("wottasquare") {
-                runner::get_wottas(matches.value_of("INPUT").unwrap())
+                runner::get_wottas(input_fname)
             } else {
-                runner::get_words(matches.value_of("INPUT").unwrap())
+                runner::get_words(input_fname)
             };
             let words = match items {
                 Ok(val) => val,

@@ -1,14 +1,9 @@
-use nom;
-
 // Needed because of https://github.com/Geal/nom/issues/345
-use nom::{IResult, alpha, digit, multispace, newline};
+use nom::{alpha, digit, multispace, newline};
 use num_traits::FromPrimitive;
-use std::error;
-use std::fs::File;
 use std::io;
-use std::io::Read;
-use std::marker;
 use std::str::{self, FromStr};
+use common;
 
 #[derive(Debug,PartialEq,Eq)]
 pub struct Word {
@@ -70,51 +65,21 @@ named!(get_wotta<RawWord>,
         })
 );
 
-fn io_str_error<T: error::Error + marker::Send + marker::Sync + 'static>(se: T) -> io::Error {
-    return io::Error::new(io::ErrorKind::Other, se);
-}
-
-fn get_words_core<F>(filename: &str, mut function: F) -> Result<Vec<Word>, io::Error>
-    where F: FnMut(&[u8]) -> nom::IResult<&[u8], RawWord>
-{
-    let mut f = try!(File::open(filename));
-    let mut buffer = Vec::new();
-    try!(f.read_to_end(&mut buffer));
-    let mut result = Vec::new();
-    let mut remaining = buffer.as_slice();
-    loop {
-        match function(remaining) {
-            IResult::Done(further, word) => {
-                if let RawWord::Word(x) = word {
-                    result.push(x);
-                }
-                remaining = further;
-            }
-            rest => {
-                match rest {
-                    nom::IResult::Error(nom::verbose_errors::Err::Position(_, characters)) => {
-                        let location = str::from_utf8(characters).map_err(io_str_error)?;
-                        let err = format!("Don't know how to parse: {}",
-                            location.chars().take(50).collect::<String>());
-                        return Err(io::Error::new(io::ErrorKind::InvalidData, err));
-                    }
-                    _ => {}
-                };
-            }
-        }
-        if remaining.len() == 0 {
-            break;
-        }
+fn word_filter(word: RawWord) -> Option<Word> {
+    if let RawWord::Word(x) = word {
+        Some(x)
     }
-    return Ok(result);
+    else {
+        None
+    }
 }
 
 pub fn get_words(filename: &str) -> Result<Vec<Word>, io::Error> {
-    return get_words_core(filename, get_word);
+    return common::get_words_core(filename, get_word, word_filter);
 }
 
 pub fn get_wottas(filename: &str) -> Result<Vec<Word>, io::Error> {
-    return get_words_core(filename, get_wotta);
+    return common::get_words_core(filename, get_wotta, word_filter);
 }
 
 enum_from_primitive! {

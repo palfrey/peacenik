@@ -10,7 +10,7 @@ extern crate num_traits;
 extern crate clap;
 
 mod runner;
-use clap::{App, Arg};
+use clap::{App, Arg, SubCommand};
 use std::io;
 
 fn main() {
@@ -18,21 +18,19 @@ fn main() {
     let matches = App::new("peacenik")
         .version("1.0")
         .author("Tom Parker <palfrey@tevp.net>")
-        .about("Beatnik interpreter")
-        .arg(Arg::with_name("output-wottasquare")
+        .about("Beatnik language tools")
+        .arg(Arg::with_name("wottasquare")
             .short("w")
-            .long("output-wottasquare")
-            .help("Switches into wottasquare output mode"))
-        .arg(Arg::with_name("input-wottasquare")
-            .short("i")
-            .long("input-wottasquare")
-            .help("Switches into wottasquare input mode"))
+            .long("wottasquare")
+            .help("Wottasquare input mode (default: Beatnik input)"))
+        .subcommand(SubCommand::with_name("run").about("Beatnik interpreter"))
+        .subcommand(SubCommand::with_name("wottasquare").about("Wottasquare dumper"))
         .arg(Arg::with_name("INPUT")
             .help("Sets the input file to use")
             .required(true)
             .index(1))
         .get_matches();
-    let items = if matches.is_present("input-wottasquare") {
+    let items = if matches.is_present("wottasquare") {
         runner::get_wottas(matches.value_of("INPUT").unwrap())
     } else {
         runner::get_words(matches.value_of("INPUT").unwrap())
@@ -48,9 +46,9 @@ fn main() {
             }
         }
     };
-    if matches.is_present("output-wottasquare") {
-        runner::output_wottasquare(words);
-    } else {
-        runner::run_beatnik(words);
+    match matches.subcommand_name() {
+        Some("run") => runner::run_beatnik(words),
+        Some("wottasquare") => runner::output_wottasquare(words),
+        _ => panic!("No command"),
     }
 }

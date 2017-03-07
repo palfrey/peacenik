@@ -30,25 +30,30 @@ fn main() {
             .required(true)
             .index(1))
         .get_matches();
-    let items = if matches.is_present("wottasquare") {
-        runner::get_wottas(matches.value_of("INPUT").unwrap())
-    } else {
-        runner::get_words(matches.value_of("INPUT").unwrap())
-    };
-    let words = match items {
-        Ok(val) => val,
-        Err(err) => {
-            if err.kind() == io::ErrorKind::InvalidData {
-                println!("{}", err.get_ref().unwrap());
-                std::process::exit(-1);
+    match matches.subcommand_name() {
+        Some("run") | Some("wottasquare") => {
+            let items = if matches.is_present("wottasquare") {
+                runner::get_wottas(matches.value_of("INPUT").unwrap())
             } else {
-                panic!("Error during parsing: {}", err);
+                runner::get_words(matches.value_of("INPUT").unwrap())
+            };
+            let words = match items {
+                Ok(val) => val,
+                Err(err) => {
+                    if err.kind() == io::ErrorKind::InvalidData {
+                        println!("{}", err.get_ref().unwrap());
+                        std::process::exit(-1);
+                    } else {
+                        panic!("Error during parsing: {}", err);
+                    }
+                }
+            };
+            match matches.subcommand_name() {
+                Some("run") => runner::run_beatnik(words),
+                Some("wottasquare") => runner::output_wottasquare(words),
+                _ => panic!("No command"),
             }
         }
-    };
-    match matches.subcommand_name() {
-        Some("run") => runner::run_beatnik(words),
-        Some("wottasquare") => runner::output_wottasquare(words),
-        _ => panic!("No command"),
+        _ => panic!("No command")
     }
 }

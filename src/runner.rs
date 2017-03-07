@@ -1,9 +1,10 @@
 // Needed because of https://github.com/Geal/nom/issues/345
+
+use common;
 use nom::{alpha, digit, multispace, newline};
 use num_traits::FromPrimitive;
 use std::io;
 use std::str::{self, FromStr};
-use common;
 
 #[derive(Debug,PartialEq,Eq)]
 pub struct Word {
@@ -68,8 +69,7 @@ named!(get_wotta<RawWord>,
 fn word_filter(word: RawWord) -> Option<Word> {
     if let RawWord::Word(x) = word {
         Some(x)
-    }
-    else {
+    } else {
         None
     }
 }

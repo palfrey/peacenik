@@ -6,7 +6,6 @@ extern crate env_logger;
 #[macro_use]
 extern crate enum_primitive;
 extern crate num_traits;
-#[macro_use]
 extern crate clap;
 
 mod runner;
@@ -59,7 +58,7 @@ fn main() {
                 }
             };
             match matches.subcommand_name() {
-                Some("run") => runner::run_beatnik(words),
+                Some("run") => runner::run_beatnik(&words),
                 Some("wottasquare") => runner::output_wottasquare(words),
                 _ => panic!("No command"),
             }

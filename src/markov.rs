@@ -1,4 +1,3 @@
-
 use common;
 use nom::{digit, is_alphabetic, multispace};
 use std::{io, str};
@@ -17,13 +16,7 @@ pub enum Token {
 }
 
 fn alpha_or_word_chars(c: u8) -> bool {
-    if is_alphabetic(c) {
-        true
-    } else if c == '\'' as u8 || c == '-' as u8 {
-        true
-    } else {
-        false
-    }
+    is_alphabetic(c) || c == '\'' as u8 || c == '-' as u8
 }
 
 named!(word_match<&[u8], (&[u8], &[u8])>,

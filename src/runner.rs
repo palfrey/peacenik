@@ -110,7 +110,7 @@ fn action(act: u8) -> Command {
     };
 }
 
-pub fn run_beatnik(words: Vec<Word>) {
+pub fn run_beatnik(words: &[Word]) {
     let mut stack: Vec<u8> = Vec::new();
     let mut pc: usize = 0;
     loop {
@@ -131,7 +131,7 @@ pub fn run_beatnik(words: Vec<Word>) {
             }
             Command::INPUT => {
                 // FIXME: read from stdin
-                stack.push('a' as u8);
+                stack.push(b'a');
             }
             Command::OUTPUT => print!("{}", stack.pop().expect("character on stack") as char),
             Command::SUBTRACT => {

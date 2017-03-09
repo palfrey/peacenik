@@ -1,15 +1,9 @@
 use nom::{IResult, verbose_errors};
-use std::error;
 use std::fmt;
 use std::fs::File;
 use std::io;
 use std::io::Read;
-use std::marker;
 use std::str;
-
-fn io_str_error<T: error::Error + marker::Send + marker::Sync + 'static>(se: T) -> io::Error {
-    return io::Error::new(io::ErrorKind::Other, se);
-}
 
 pub fn get_words_core<Parser, Filter, RawItem, Item>(filename: &str,
                                                      mut function: Parser,
@@ -34,23 +28,20 @@ pub fn get_words_core<Parser, Filter, RawItem, Item>(filename: &str,
                 remaining = further;
             }
             rest => {
-                match rest {
-                    IResult::Error(verbose_errors::Err::Position(errorkind, characters)) => {
-                        let err = match str::from_utf8(characters) {
-                            Ok(location) => {
-                                format!("Don't know how to parse due to {:?}: {}",
-                                        errorkind,
-                                        location.chars().take(50).collect::<String>())
-                            }
-                            Err(err) => format!("Don't know how to parse due to {:?}: {}", errorkind, err),
-                        };
-                        return Err(io::Error::new(io::ErrorKind::InvalidData, err));
-                    }
-                    _ => {}
-                };
+                if let IResult::Error(verbose_errors::Err::Position(errorkind, characters)) = rest {
+                    let err = match str::from_utf8(characters) {
+                        Ok(location) => {
+                            format!("Don't know how to parse due to {:?}: {}",
+                                    errorkind,
+                                    location.chars().take(50).collect::<String>())
+                        }
+                        Err(err) => format!("Don't know how to parse due to {:?}: {}", errorkind, err),
+                    };
+                    return Err(io::Error::new(io::ErrorKind::InvalidData, err));
+                }
             }
         }
-        if remaining.len() == 0 {
+        if remaining.is_empty() {
             break;
         }
     }

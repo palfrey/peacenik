@@ -1,7 +1,7 @@
 // Needed because of https://github.com/Geal/nom/issues/345
 
 use common;
-use nom::{alpha, digit, multispace, newline};
+use nom::{alpha, digit, multispace};
 use num_traits::FromPrimitive;
 use std::io;
 use std::str::{self, FromStr};
@@ -36,33 +36,33 @@ fn score(word: &str) -> u8 {
     return result;
 }
 
-named!(get_word<RawWord>,
+named!(get_word<&str, RawWord>,
     alt!(
         alpha => { |word| {
-                let word = String::from(str::from_utf8(word).unwrap());
+                let word = String::from(word);
                 let sc = score(&word.to_lowercase());
                 RawWord::Word(Word{word:word, score:sc})
             }
         } |
-        alt!(multispace | digit | is_a!(", !;:.()\"'-?|&"))  => { |_| RawWord::Junk }
+        alt!(multispace |is_a_s!(", !;:.()\"'-?|&"))  => { |_| RawWord::Junk }
     )
 );
 
-named!(get_wotta<RawWord>,
+named!(get_wotta<&str, RawWord>,
     map!(tuple!(
-        tag!("["),
+        tag_s!("["),
         digit,
         opt!(
             tuple!(
-                tag!(":"),
-                is_not!("]")
+                tag_s!(":"),
+                is_not_s!("]")
             )
         ),
-        tag!("]"),
-        opt!(newline)
+        tag_s!("]"),
+        opt!(tag_s!("\n"))
     ), |(_, raw_score, comment_opt, _, _)|{
-        let word = String::from(str::from_utf8((comment_opt as Option<(&[u8], &[u8])>).unwrap().1).unwrap());
-        RawWord::Word(Word{word: word, score: u8::from_str(str::from_utf8(raw_score).unwrap()).unwrap()})
+        let word = String::from((comment_opt as Option<(&str, &str)>).unwrap().1);
+        RawWord::Word(Word{word: word, score: u8::from_str(raw_score).unwrap()})
         })
 );
 
@@ -75,11 +75,11 @@ fn word_filter(word: RawWord) -> Option<Word> {
 }
 
 pub fn get_words(filename: &str) -> Result<Vec<Word>, io::Error> {
-    return common::get_words_core(filename, get_word, word_filter);
+    return common::get_words_core_fn(filename, get_word, word_filter);
 }
 
 pub fn get_wottas(filename: &str) -> Result<Vec<Word>, io::Error> {
-    return common::get_words_core(filename, get_wotta, word_filter);
+    return common::get_words_core_fn(filename, get_wotta, word_filter);
 }
 
 enum_from_primitive! {

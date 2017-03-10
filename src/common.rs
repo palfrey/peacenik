@@ -17,11 +17,15 @@ pub fn get_words_core<Parser, Filter, RawItem, Item>(characters: &[u8],
                                                      -> Result<Vec<Item>, io::Error>
     where Parser: FnMut(&str) -> IResult<&str, RawItem>,
           Filter: FnMut(RawItem) -> Option<Item>,
-          Item: fmt::Debug
+          Item: fmt::Debug,
+          RawItem: fmt::Debug
 {
     let mut remaining = str::from_utf8(characters).map_err(io_str_error)?;
     let mut result = Vec::new();
     loop {
+        if remaining.is_empty() {
+            break;
+        }
         match function(remaining) {
             IResult::Done(further, word) => {
                 if let Some(x) = filter(word) {
@@ -30,17 +34,18 @@ pub fn get_words_core<Parser, Filter, RawItem, Item>(characters: &[u8],
                 }
                 remaining = further;
             }
-            rest => {
-                if let IResult::Error(verbose_errors::Err::Position(errorkind, characters)) = rest {
-                    let err = format!("Don't know how to parse due to {:?}: {}",
-                                      errorkind,
-                                      characters.chars().take(50).collect::<String>());
-                    return Err(io::Error::new(io::ErrorKind::InvalidData, err));
-                }
+            IResult::Error(verbose_errors::Err::Position(errorkind, characters)) => {
+                let err = format!("Don't know how to parse due to {:?}: {}",
+                                  errorkind,
+                                  characters.chars().take(50).collect::<String>());
+                return Err(io::Error::new(io::ErrorKind::InvalidData, err));
             }
-        }
-        if remaining.is_empty() {
-            break;
+            IResult::Incomplete(_) => {
+                break;
+            }
+            rest => {
+                panic!(format!("foo: {:?}", rest));
+            }
         }
     }
     return Ok(result);
@@ -52,7 +57,8 @@ pub fn get_words_core_fn<Parser, Filter, RawItem, Item>(filename: &str,
                                                         -> Result<Vec<Item>, io::Error>
     where Parser: FnMut(&str) -> IResult<&str, RawItem>,
           Filter: FnMut(RawItem) -> Option<Item>,
-          Item: fmt::Debug
+          Item: fmt::Debug,
+          RawItem: fmt::Debug
 {
     let mut f = try!(File::open(filename));
     let mut buffer = Vec::new();

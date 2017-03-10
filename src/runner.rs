@@ -1,7 +1,7 @@
 // Needed because of https://github.com/Geal/nom/issues/345
 
 use common;
-use nom::{alpha, digit, multispace};
+use nom::{alpha, digit};
 use num_traits::FromPrimitive;
 use std::io;
 use std::str::{self, FromStr};
@@ -44,7 +44,7 @@ named!(get_word<&str, RawWord>,
                 RawWord::Word(Word{word:word, score:sc})
             }
         } |
-        alt!(multispace |is_a_s!(", !;:.()\"'-?|&"))  => { |_| RawWord::Junk }
+        take_s!( 1 )  => { |_| RawWord::Junk }
     )
 );
 
@@ -191,4 +191,41 @@ pub fn output_wottasquare(words: Vec<Word>) {
     for word in words {
         println!("[{}:{:?}]", word.score, action(word.score));
     }
+}
+
+#[cfg(test)]
+mod tests {
+    use common;
+    use quickcheck::TestResult;
+    use super::{get_word, get_wotta, word_filter};
+
+    quickcheck! {
+      fn word_test(xs: String) -> TestResult {
+          return match common::get_words_core(xs.as_bytes(), get_word, word_filter) {
+              Ok(_) => TestResult::passed(),
+              Err(err) => {
+                  println!("Error: '{}'", xs);
+                  TestResult::error(format!("{:?}", err))
+              }
+          }
+      }
+
+      fn wotta_test(xs: String) -> TestResult {
+        if xs.len() == 0 {
+            return TestResult::discard();
+        }
+        if xs.find("]").is_some() {
+            return TestResult::discard();
+        }
+
+        return match common::get_words_core(
+            format!("[1:{}]", xs).as_bytes(), get_wotta, word_filter) {
+            Ok(_) => TestResult::passed(),
+            Err(err) => {
+                println!("Error: '{}'", xs);
+                TestResult::error(format!("{:?}", err))
+            }
+        }
+      }
+  }
 }

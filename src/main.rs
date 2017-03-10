@@ -8,6 +8,10 @@ extern crate enum_primitive;
 extern crate num_traits;
 extern crate clap;
 
+#[cfg(test)]
+#[macro_use]
+extern crate quickcheck;
+
 mod runner;
 mod markov;
 mod common;

@@ -12,7 +12,6 @@ pub enum Token {
     Colon,
     Quote,
     SingleQuote,
-    Paragraph,
     Newline,
     Word(String),
 }
@@ -43,13 +42,13 @@ named!(get_token<&str, Token>,
         is_a_s!("\"“”") => {|_| Token::Quote} |
         is_a_s!("\r\n") => {|_| Token::Newline} |
         is_a_s!("\'") => {|_| Token::SingleQuote} |
-        is_a_s!(" \t|&;") => { |_| Token::Junk } |
         word_match => { |(begin, rest)| {
                 let mut word = String::from(begin);
                 word += rest;
                 Token::Word(word)
             }
-        }
+        } |
+        take_s!( 1 )  => { |_| Token::Junk }
     )
 );
 
@@ -61,7 +60,26 @@ pub fn get_tokens(filename: &str) -> Result<Vec<Token>, io::Error> {
     return common::get_words_core_fn(filename, get_token, empty_filter);
 }
 
-#[test]
-fn copes_with_utf_8() {
-    common::get_words_core("why—I".as_bytes(), get_token, empty_filter).unwrap();
+#[cfg(test)]
+mod tests {
+    use common;
+    use quickcheck::TestResult;
+    use super::{empty_filter, get_token};
+
+    #[test]
+    fn copes_with_utf_8() {
+        common::get_words_core("why—I".as_bytes(), get_token, empty_filter).unwrap();
+    }
+
+    quickcheck! {
+      fn token_test(xs: String) -> TestResult {
+          return match common::get_words_core(xs.as_bytes(), get_token, empty_filter) {
+              Ok(_) => TestResult::passed(),
+              Err(err) => {
+                  println!("Error: '{}'", xs);
+                  TestResult::error(format!("{:?}", err))
+              }
+          }
+      }
+  }
 }

@@ -15,8 +15,10 @@ extern crate quickcheck;
 mod runner;
 mod markov;
 mod common;
+
 use clap::{App, Arg, SubCommand};
-use std::io;
+use std::fs::File;
+use std::io::{self, Write};
 
 fn main() {
     env_logger::init().unwrap();
@@ -42,9 +44,9 @@ fn main() {
             .index(1))
         .get_matches();
     let input_fname = matches.value_of("INPUT").unwrap();
-    match matches.subcommand_name() {
-        Some("run") |
-        Some("wottasquare") => {
+    match matches.subcommand() {
+        ("run", _) |
+        ("wottasquare", _) => {
             let items = if matches.is_present("wottasquare") {
                 runner::get_wottas(input_fname)
             } else {
@@ -67,8 +69,11 @@ fn main() {
                 _ => panic!("No command"),
             }
         }
-        Some("generate-markov") => {
-            println!("{:?}", markov::get_tokens(input_fname).expect("markov"));
+        ("generate-markov", Some(args)) => {
+            let markov = markov::generate_markov(input_fname).expect("markov");
+            let output_fname = args.value_of("OUTPUT").expect("output name");
+            let mut buffer = File::create(output_fname).unwrap();
+            buffer.write(markov).unwrap();
         }
         _ => panic!("No command"),
     }

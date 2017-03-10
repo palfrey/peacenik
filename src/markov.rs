@@ -1,5 +1,6 @@
 use common;
 use std::{io, str};
+use std::collections::HashMap;
 
 #[derive(Debug,PartialEq,Eq)]
 pub enum Token {
@@ -14,6 +15,25 @@ pub enum Token {
     SingleQuote,
     Newline,
     Word(String),
+}
+
+impl Token {
+    pub fn string(self: Token) -> String {
+        return match self {
+                Token::Word(word) => word,
+                Token::Junk => String::from(" "),
+                Token::Comma => String::from(","),
+                Token::FullStop => String::from("."),
+                Token::QuestionMark => String::from("?"),
+                Token::OpenBracket => String::from("("),
+                Token::CloseBracket => String::from(")"),
+                Token::Colon => String::from(":"),
+                Token::Quote => String::from("\""),
+                Token::SingleQuote => String::from("\'"),
+                Token::Newline => String::from("\n"),
+            }
+            .to_lowercase();
+    }
 }
 
 fn is_alphabetic(c: char) -> bool {
@@ -58,6 +78,27 @@ fn empty_filter(x: Token) -> Option<Token> {
 
 pub fn get_tokens(filename: &str) -> Result<Vec<Token>, io::Error> {
     return common::get_words_core_fn(filename, get_token, empty_filter);
+}
+
+pub fn generate_markov<'a>(filename: &str) -> Result<HashMap<String, HashMap<String, f32>>, io::Error> {
+    let tokens = get_tokens(filename)?;
+    let str_tokens = tokens.into_iter()
+        .filter(|t: &Token| -> bool { if let &Token::Junk = t { false } else { true } })
+        .map(|t| t.string());
+    let mut res = HashMap::new();
+    let mut last = String::new();
+    for token in str_tokens {
+        let last_hash = res.entry(last.clone()).or_insert(HashMap::new());
+        *last_hash.entry(token.clone()).or_insert(0f32) += 1f32;
+        last = token.clone();
+    }
+    for (_, tokens) in res.iter_mut() {
+        let total: f32 = tokens.iter().map(|(_, v)| v).sum();
+        for (_, val) in tokens.iter_mut() {
+            *val /= total;
+        }
+    }
+    Ok(res)
 }
 
 #[cfg(test)]

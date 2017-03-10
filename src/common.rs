@@ -29,7 +29,6 @@ pub fn get_words_core<Parser, Filter, RawItem, Item>(characters: &[u8],
         match function(remaining) {
             IResult::Done(further, word) => {
                 if let Some(x) = filter(word) {
-                    println!("Word: '{:?}'", x);
                     result.push(x);
                 }
                 remaining = further;

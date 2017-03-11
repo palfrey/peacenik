@@ -2,7 +2,7 @@ use common;
 use std::{io, str};
 use std::collections::HashMap;
 
-#[derive(Debug,PartialEq,Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum Token {
     Junk,
     Comma,
@@ -15,6 +15,7 @@ pub enum Token {
     SingleQuote,
     Newline,
     Word(String),
+    Begin,
 }
 
 impl Token {
@@ -31,6 +32,7 @@ impl Token {
                 Token::Quote => String::from("\""),
                 Token::SingleQuote => String::from("\'"),
                 Token::Newline => String::from("\n"),
+                Token::Begin => String::from(""),
             }
             .to_lowercase();
     }
@@ -86,7 +88,7 @@ pub fn generate_markov<'a>(filename: &str) -> Result<HashMap<String, HashMap<Str
         .filter(|t: &Token| -> bool { if let &Token::Junk = t { false } else { true } })
         .map(|t| t.string());
     let mut res = HashMap::new();
-    let mut last = String::new();
+    let mut last = Token::Begin.string();
     for token in str_tokens {
         let last_hash = res.entry(last.clone()).or_insert(HashMap::new());
         *last_hash.entry(token.clone()).or_insert(0f32) += 1f32;

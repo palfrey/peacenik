@@ -12,13 +12,15 @@ extern crate clap;
 #[macro_use]
 extern crate quickcheck;
 
+extern crate serde_json;
+
 mod runner;
 mod markov;
 mod common;
 
 use clap::{App, Arg, SubCommand};
 use std::fs::File;
-use std::io::{self, Write};
+use std::io;
 
 fn main() {
     env_logger::init().unwrap();
@@ -73,7 +75,7 @@ fn main() {
             let markov = markov::generate_markov(input_fname).expect("markov");
             let output_fname = args.value_of("OUTPUT").expect("output name");
             let mut buffer = File::create(output_fname).unwrap();
-            buffer.write(markov).unwrap();
+            serde_json::to_writer(&mut buffer, &markov).unwrap();
         }
         _ => panic!("No command"),
     }

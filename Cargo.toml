@@ -10,6 +10,7 @@ enum_primitive = "*"
 num-traits = "*"
 clap = "2.20.5"
 quickcheck = "0.4.1"
+serde_json = "0.9"
 
 [dependencies.nom]
 version = "^2.1"

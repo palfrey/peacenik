@@ -77,9 +77,9 @@ fn main() {
                 .required(true)))
         .get_matches();
     match matches.subcommand() {
-        ("run", _) |
-        ("wottasquare", _) => {
-            let input_fname = matches.value_of("INPUT").unwrap();
+        ("run", Some(args)) |
+        ("wottasquare", Some(args)) => {
+            let input_fname = args.value_of("INPUT").expect("input filename");
             let items = if matches.is_present("wottasquare") {
                 runner::get_wottas(input_fname)
             } else {
@@ -108,6 +108,14 @@ fn main() {
             let output_fname = args.value_of("OUTPUT").expect("output name");
             let mut buffer = File::create(output_fname).unwrap();
             serde_yaml::to_writer(&mut buffer, &markov).unwrap();
+        }
+        ("markov-beatnik", Some(args)) => {
+            let input_fname = args.value_of("INPUT").unwrap();
+            let markov_fname = args.value_of("MARKOV").unwrap();
+            let markov = markov::make_beatnik(input_fname, markov_fname).expect("markov");
+            let output_fname = args.value_of("OUTPUT").expect("output name");
+            let mut buffer = File::create(output_fname).unwrap();
+            buffer.write(markov.as_bytes()).unwrap();
         }
         _ => panic!("No command"),
     }

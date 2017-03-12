@@ -12,6 +12,12 @@ pub struct Word {
     score: u8,
 }
 
+impl Word {
+    pub fn score(self: &Word) -> u8 {
+        self.score
+    }
+}
+
 #[derive(Debug,PartialEq,Eq)]
 enum RawWord {
     Junk,

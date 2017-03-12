@@ -3,6 +3,7 @@ use runner;
 use serde_yaml;
 use std::{io, str};
 use std::collections::BTreeMap;
+use std::fs::File;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum Token {
@@ -106,6 +107,36 @@ impl MarkovInfo {
         let root_score_entry = self.scores.entry(token_score).or_insert(BTreeMap::new());
         *root_score_entry.entry(token.clone()).or_insert(0) += 1;
     }
+
+    fn default_get(self: &MarkovInfo, score: u8) -> String {
+        match self.scores.get(&score) {
+            Some(score_hash) => score_hash.keys().nth(0).unwrap().clone(),
+            None => {
+                warn!("Have no words with score {} so making up one", score);
+                let mut ret = String::new();
+                for _ in 0..(score / 10) {
+                    ret.push('z');
+                }
+                for _ in 0..(score % 10) {
+                    ret.push('a');
+                }
+                return ret;
+            }
+        }
+    }
+
+    fn get_token(self: &MarkovInfo, last: &String, score: u8) -> String {
+        debug!("Looking up for '{}' and {}", last, score);
+        return match self.lookup.get(last) {
+            Some(word) => {
+                match word.get(&score) {
+                    Some(score_hash) => score_hash.keys().nth(0).unwrap().clone(),
+                    None => self.default_get(score),
+                }
+            }
+            None => self.default_get(score),
+        };
+    }
 }
 
 pub fn generate_markov<'a>(filename: &str) -> Result<MarkovInfo, io::Error> {
@@ -119,7 +150,22 @@ pub fn generate_markov<'a>(filename: &str) -> Result<MarkovInfo, io::Error> {
         res.add_token(last, &token);
         last = token.clone();
     }
+    println!("{:?}", res.scores.get(&0).unwrap());
     Ok(res)
+}
+
+pub fn make_beatnik(wottasquare: &str, markov_fname: &str) -> Result<String, io::Error> {
+    let buffer = File::open(markov_fname).unwrap();
+    let markov: MarkovInfo = serde_yaml::from_reader(&buffer).map_err(common::io_str_error)?;
+    let words = runner::get_wottas(wottasquare)?;
+    let mut last = Token::Begin.string();
+    let mut out = String::new();
+    for word in words {
+        let token = markov.get_token(&last, word.score());
+        out.push_str(&format!("{} ", token));
+        last = token;
+    }
+    return Ok(out);
 }
 
 #[cfg(test)]

@@ -7,7 +7,7 @@ use std::io::Read;
 use std::marker;
 use std::str;
 
-fn io_str_error<T: error::Error + marker::Send + marker::Sync + 'static>(se: T) -> io::Error {
+pub fn io_str_error<T: error::Error + marker::Send + marker::Sync + 'static>(se: T) -> io::Error {
     return io::Error::new(io::ErrorKind::Other, se);
 }
 

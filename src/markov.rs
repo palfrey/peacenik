@@ -1,6 +1,8 @@
 use common;
+use runner;
+use serde_yaml;
 use std::{io, str};
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum Token {
@@ -43,7 +45,7 @@ fn is_alphabetic(c: char) -> bool {
 }
 
 fn alpha_or_word_chars(c: char) -> bool {
-    c.is_alphabetic() || c == '\'' || c == '-' || c == '\u{2014}' // em-dash
+    c.is_alphabetic() || c == '\'' || c == '’' || c == '-' || c == '\u{2014}' // em-dash
 }
 
 named!(word_match<&str, (&str, &str)>,
@@ -82,23 +84,40 @@ pub fn get_tokens(filename: &str) -> Result<Vec<Token>, io::Error> {
     return common::get_words_core_fn(filename, get_token, empty_filter);
 }
 
-pub fn generate_markov<'a>(filename: &str) -> Result<HashMap<String, HashMap<String, f32>>, io::Error> {
+#[derive(Serialize, Deserialize, Debug)]
+pub struct MarkovInfo {
+    scores: BTreeMap<u8, BTreeMap<String, u16>>,
+    lookup: BTreeMap<String, BTreeMap<u8, BTreeMap<String, u8>>>,
+}
+
+impl MarkovInfo {
+    fn new() -> MarkovInfo {
+        MarkovInfo {
+            scores: BTreeMap::new(),
+            lookup: BTreeMap::new(),
+        }
+    }
+
+    fn add_token(self: &mut MarkovInfo, last: String, token: &String) {
+        let last_hash = self.lookup.entry(last.clone()).or_insert(BTreeMap::new());
+        let token_score = runner::score(&token);
+        let score_entry = last_hash.entry(token_score).or_insert(BTreeMap::new());
+        *score_entry.entry(token.clone()).or_insert(0) += 1;
+        let root_score_entry = self.scores.entry(token_score).or_insert(BTreeMap::new());
+        *root_score_entry.entry(token.clone()).or_insert(0) += 1;
+    }
+}
+
+pub fn generate_markov<'a>(filename: &str) -> Result<MarkovInfo, io::Error> {
     let tokens = get_tokens(filename)?;
     let str_tokens = tokens.into_iter()
         .filter(|t: &Token| -> bool { if let &Token::Junk = t { false } else { true } })
         .map(|t| t.string());
-    let mut res = HashMap::new();
+    let mut res = MarkovInfo::new();
     let mut last = Token::Begin.string();
     for token in str_tokens {
-        let last_hash = res.entry(last.clone()).or_insert(HashMap::new());
-        *last_hash.entry(token.clone()).or_insert(0f32) += 1f32;
+        res.add_token(last, &token);
         last = token.clone();
-    }
-    for (_, tokens) in res.iter_mut() {
-        let total: f32 = tokens.iter().map(|(_, v)| v).sum();
-        for (_, val) in tokens.iter_mut() {
-            *val /= total;
-        }
     }
     Ok(res)
 }

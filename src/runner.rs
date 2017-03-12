@@ -18,7 +18,7 @@ enum RawWord {
     Word(Word),
 }
 
-fn score(word: &str) -> u8 {
+pub fn score(word: &str) -> u8 {
     let mut result = 0;
     for letter in word.chars() {
         result += match letter {

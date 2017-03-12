@@ -7,12 +7,14 @@ extern crate env_logger;
 extern crate enum_primitive;
 extern crate num_traits;
 extern crate clap;
+extern crate serde_yaml;
+
+#[macro_use]
+extern crate serde_derive;
 
 #[cfg(test)]
 #[macro_use]
 extern crate quickcheck;
-
-extern crate serde_json;
 
 mod runner;
 mod markov;
@@ -20,7 +22,7 @@ mod common;
 
 use clap::{App, Arg, SubCommand};
 use std::fs::File;
-use std::io;
+use std::io::{self, Write};
 
 fn main() {
     env_logger::init().unwrap();
@@ -32,23 +34,52 @@ fn main() {
             .short("w")
             .long("wottasquare")
             .help("Wottasquare input mode (default: Beatnik input)"))
-        .subcommand(SubCommand::with_name("run").about("Beatnik interpreter"))
-        .subcommand(SubCommand::with_name("wottasquare").about("Wottasquare dumper"))
-        .subcommand(SubCommand::with_name("generate-markov")
-            .about("Markov chain generator")
-            .arg(Arg::with_name("OUTPUT")
-                .help("Sets the output file to use")
+        .subcommand(SubCommand::with_name("run")
+            .about("Beatnik interpreter")
+            .arg(Arg::with_name("INPUT")
+                .help("Sets the input file to use")
                 .required(true)
                 .index(1)))
-        .arg(Arg::with_name("INPUT")
-            .help("Sets the input file to use")
-            .required(true)
-            .index(1))
+        .subcommand(SubCommand::with_name("wottasquare")
+            .about("Wottasquare dumper")
+            .arg(Arg::with_name("INPUT")
+                .help("Sets the input file to use")
+                .required(true)
+                .index(1)))
+        .subcommand(SubCommand::with_name("generate-markov")
+            .about("Markov chain generator")
+            .arg(Arg::with_name("INPUT")
+                .short("i")
+                .takes_value(true)
+                .help("Sets the input file to use")
+                .required(true))
+            .arg(Arg::with_name("OUTPUT")
+                .short("o")
+                .takes_value(true)
+                .help("Sets the output file to use")
+                .required(true)))
+        .subcommand(SubCommand::with_name("markov-beatnik")
+            .about("Beatnik from Wottasquare using Markov")
+            .arg(Arg::with_name("INPUT")
+                .short("i")
+                .takes_value(true)
+                .help("Sets the input file to use")
+                .required(true))
+            .arg(Arg::with_name("MARKOV")
+                .short("m")
+                .takes_value(true)
+                .help("Sets the markov file to use")
+                .required(true))
+            .arg(Arg::with_name("OUTPUT")
+                .short("o")
+                .takes_value(true)
+                .help("Sets the output file to use")
+                .required(true)))
         .get_matches();
-    let input_fname = matches.value_of("INPUT").unwrap();
     match matches.subcommand() {
         ("run", _) |
         ("wottasquare", _) => {
+            let input_fname = matches.value_of("INPUT").unwrap();
             let items = if matches.is_present("wottasquare") {
                 runner::get_wottas(input_fname)
             } else {
@@ -72,10 +103,11 @@ fn main() {
             }
         }
         ("generate-markov", Some(args)) => {
+            let input_fname = args.value_of("INPUT").unwrap();
             let markov = markov::generate_markov(input_fname).expect("markov");
             let output_fname = args.value_of("OUTPUT").expect("output name");
             let mut buffer = File::create(output_fname).unwrap();
-            serde_json::to_writer(&mut buffer, &markov).unwrap();
+            serde_yaml::to_writer(&mut buffer, &markov).unwrap();
         }
         _ => panic!("No command"),
     }

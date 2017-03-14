@@ -96,19 +96,19 @@ fn main() {
     match matches.subcommand() {
         ("run", Some(args)) => {
             let input_fname = args.value_of("INPUT").expect("input filename");
-            let items = runner::get_words(input_fname);
+            let items = runner::get_words_fn(input_fname);
             let words = word_parser(items);
             runner::run_beatnik(&words);
         }
         ("wottasquare", Some(args)) => {
             let input_fname = args.value_of("INPUT").expect("input filename");
-            let items = runner::get_wottas(input_fname);
+            let items = runner::get_wottas_fn(input_fname);
             let words = word_parser(items);
             runner::run_beatnik(&words);
         }
         ("wottasquare-dumper", Some(args)) => {
             let input_fname = args.value_of("INPUT").expect("input filename");
-            let items = runner::get_words(input_fname);
+            let items = runner::get_words_fn(input_fname);
             let words = word_parser(items);
             runner::output_wottasquare(words);
         }
@@ -122,11 +122,37 @@ fn main() {
         ("markov-beatnik", Some(args)) => {
             let input_fname = args.value_of("INPUT").unwrap();
             let markov_fname = args.value_of("MARKOV").unwrap();
-            let markov = markov::make_beatnik(input_fname, markov_fname).expect("markov");
+            let words = runner::get_wottas_fn(input_fname).expect("wottasquare data");
+            let markov_data = markov::read_markov(markov_fname).expect("markov data");
+            let markov_out = markov::make_beatnik(&words, &markov_data).expect("markov");
             let output_fname = args.value_of("OUTPUT").expect("output name");
             let mut buffer = File::create(output_fname).unwrap();
-            buffer.write(markov.as_bytes()).unwrap();
+            buffer.write(markov_out.as_bytes()).unwrap();
         }
         _ => panic!("No command"),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use markov;
+    use quickcheck::TestResult;
+    use runner;
+
+    quickcheck!{
+        fn wotta_two_way(xs: Vec<u8>) -> TestResult {
+            println!("Score in: {:?}", xs);
+            let words = xs.iter().filter(|x| *x !=&0).map(|x| runner::Word{score:*x, word:String::from("")}).collect();
+            let markov = markov::MarkovInfo::new();
+            let markov_out = markov::make_beatnik(&words, &markov).unwrap();
+            println!("Markov: {}", markov_out);
+            let words_out = runner::get_words(markov_out.as_bytes()).unwrap();
+            println!("Words out: {:?}", words_out);
+            let score_out: Vec<u8> = words_out.iter().map(|x|x.score).collect();
+            println!("Score out: {:?}", score_out);
+            let res = xs.into_iter().filter(|x| x != &0).collect::<Vec<u8>>() == score_out;
+            println!("Res: {}", res);
+            TestResult::from_bool(res)
+        }
     }
 }

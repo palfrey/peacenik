@@ -157,7 +157,8 @@ impl MarkovScores {
                 if choice < zero_score {
                     let zero_token = self.tokens.get(&0).unwrap().get_key();
                     let mut rest = self.get_key(score).unwrap();
-                    if zero_token == "." || zero_token == "?" || zero_token == "\n" {
+                    if zero_token == Token::FullStop.string() || zero_token == Token::QuestionMark.string() ||
+                       zero_token == Token::Newline.string() {
                         rest = title_case(&rest);
                     }
                     Some(zero_token + &rest)
@@ -188,7 +189,7 @@ pub struct MarkovInfo {
 }
 
 impl MarkovInfo {
-    fn new() -> MarkovInfo {
+    pub fn new() -> MarkovInfo {
         MarkovInfo {
             scores: MarkovScores::new(),
             lookup: BTreeMap::new(),
@@ -247,10 +248,12 @@ pub fn generate_markov<'a>(filename: &str) -> Result<MarkovInfo, io::Error> {
     Ok(res)
 }
 
-pub fn make_beatnik(wottasquare: &str, markov_fname: &str) -> Result<String, io::Error> {
+pub fn read_markov(markov_fname: &str) -> Result<MarkovInfo, io::Error> {
     let buffer = File::open(markov_fname).unwrap();
-    let markov: MarkovInfo = serde_yaml::from_reader(&buffer).map_err(common::io_str_error)?;
-    let words = runner::get_wottas(wottasquare)?;
+    Ok(serde_yaml::from_reader(&buffer).map_err(common::io_str_error)?)
+}
+
+pub fn make_beatnik(words: &Vec<runner::Word>, markov: &MarkovInfo) -> Result<String, io::Error> {
     let mut last = Token::Begin.string();
     let mut out = String::new();
     for word in words {

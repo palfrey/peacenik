@@ -6,10 +6,10 @@ use num_traits::FromPrimitive;
 use std::io;
 use std::str::{self, FromStr};
 
-#[derive(Debug,PartialEq,Eq)]
+#[derive(Debug)]
 pub struct Word {
-    word: String,
-    score: u8,
+    pub word: String,
+    pub score: u8,
 }
 
 impl Word {
@@ -18,7 +18,7 @@ impl Word {
     }
 }
 
-#[derive(Debug,PartialEq,Eq)]
+#[derive(Debug)]
 enum RawWord {
     Junk,
     Word(Word),
@@ -80,12 +80,20 @@ fn word_filter(word: RawWord) -> Option<Word> {
     }
 }
 
-pub fn get_words(filename: &str) -> Result<Vec<Word>, io::Error> {
+pub fn get_words_fn(filename: &str) -> Result<Vec<Word>, io::Error> {
     return common::get_words_core_fn(filename, get_word, word_filter);
 }
 
-pub fn get_wottas(filename: &str) -> Result<Vec<Word>, io::Error> {
+pub fn get_words(buffer: &[u8]) -> Result<Vec<Word>, io::Error> {
+    return common::get_words_core(buffer, get_word, word_filter);
+}
+
+pub fn get_wottas_fn(filename: &str) -> Result<Vec<Word>, io::Error> {
     return common::get_words_core_fn(filename, get_wotta, word_filter);
+}
+
+pub fn get_wottas(buffer: &[u8]) -> Result<Vec<Word>, io::Error> {
+    return common::get_words_core(buffer, get_wotta, word_filter);
 }
 
 enum_from_primitive! {
@@ -201,13 +209,12 @@ pub fn output_wottasquare(words: Vec<Word>) {
 
 #[cfg(test)]
 mod tests {
-    use common;
     use quickcheck::TestResult;
-    use super::{get_word, get_wotta, word_filter};
+    use super::{get_words, get_wottas};
 
     quickcheck! {
       fn word_test(xs: String) -> TestResult {
-          return match common::get_words_core(xs.as_bytes(), get_word, word_filter) {
+          return match get_words(xs.as_bytes()) {
               Ok(_) => TestResult::passed(),
               Err(err) => {
                   println!("Error: '{}'", xs);
@@ -224,8 +231,8 @@ mod tests {
             return TestResult::discard();
         }
 
-        return match common::get_words_core(
-            format!("[1:{}]", xs).as_bytes(), get_wotta, word_filter) {
+        return match get_wottas(
+            format!("[1:{}]", xs).as_bytes()) {
             Ok(_) => TestResult::passed(),
             Err(err) => {
                 println!("Error: '{}'", xs);

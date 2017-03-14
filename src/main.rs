@@ -25,16 +25,26 @@ use clap::{App, Arg, SubCommand};
 use std::fs::File;
 use std::io::{self, Write};
 
+fn word_parser(items: Result<Vec<runner::Word>, io::Error>) -> Vec<runner::Word> {
+    return match items {
+        Ok(val) => val,
+        Err(err) => {
+            if err.kind() == io::ErrorKind::InvalidData {
+                println!("{}", err.get_ref().unwrap());
+                std::process::exit(-1);
+            } else {
+                panic!("Error during parsing: {}", err);
+            }
+        }
+    };
+}
+
 fn main() {
     env_logger::init().unwrap();
     let matches = App::new("peacenik")
         .version("1.0")
         .author("Tom Parker <palfrey@tevp.net>")
         .about("Beatnik language tools")
-        .arg(Arg::with_name("wottasquare")
-            .short("w")
-            .long("wottasquare")
-            .help("Wottasquare input mode (default: Beatnik input)"))
         .subcommand(SubCommand::with_name("run")
             .about("Beatnik interpreter")
             .arg(Arg::with_name("INPUT")
@@ -42,6 +52,12 @@ fn main() {
                 .required(true)
                 .index(1)))
         .subcommand(SubCommand::with_name("wottasquare")
+            .about("Wottasquare interpreter")
+            .arg(Arg::with_name("INPUT")
+                .help("Sets the input file to use")
+                .required(true)
+                .index(1)))
+        .subcommand(SubCommand::with_name("wottasquare-dumper")
             .about("Wottasquare dumper")
             .arg(Arg::with_name("INPUT")
                 .help("Sets the input file to use")
@@ -78,30 +94,23 @@ fn main() {
                 .required(true)))
         .get_matches();
     match matches.subcommand() {
-        ("run", Some(args)) |
+        ("run", Some(args)) => {
+            let input_fname = args.value_of("INPUT").expect("input filename");
+            let items = runner::get_words(input_fname);
+            let words = word_parser(items);
+            runner::run_beatnik(&words);
+        }
         ("wottasquare", Some(args)) => {
             let input_fname = args.value_of("INPUT").expect("input filename");
-            let items = if matches.is_present("wottasquare") {
-                runner::get_wottas(input_fname)
-            } else {
-                runner::get_words(input_fname)
-            };
-            let words = match items {
-                Ok(val) => val,
-                Err(err) => {
-                    if err.kind() == io::ErrorKind::InvalidData {
-                        println!("{}", err.get_ref().unwrap());
-                        std::process::exit(-1);
-                    } else {
-                        panic!("Error during parsing: {}", err);
-                    }
-                }
-            };
-            match matches.subcommand_name() {
-                Some("run") => runner::run_beatnik(&words),
-                Some("wottasquare") => runner::output_wottasquare(words),
-                _ => panic!("No command"),
-            }
+            let items = runner::get_wottas(input_fname);
+            let words = word_parser(items);
+            runner::run_beatnik(&words);
+        }
+        ("wottasquare-dumper", Some(args)) => {
+            let input_fname = args.value_of("INPUT").expect("input filename");
+            let items = runner::get_words(input_fname);
+            let words = word_parser(items);
+            runner::output_wottasquare(words);
         }
         ("generate-markov", Some(args)) => {
             let input_fname = args.value_of("INPUT").unwrap();

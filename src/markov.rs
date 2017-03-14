@@ -108,8 +108,14 @@ impl MarkovSymbols {
 
     fn get_key(self: &MarkovSymbols) -> String {
         let mut rng = rand::thread_rng();
-        let keys = self.tokens.keys();
-        self.tokens.keys().nth(rng.gen_range(0, keys.len())).unwrap().clone()
+        let mut choice = rng.gen_range(0, self.count);
+        for (key, value) in self.tokens.iter() {
+            if &choice < value {
+                return key.clone();
+            }
+            choice -= *value;
+        }
+        panic!("Didn't find token within range");
     }
 
     fn count(self: &MarkovSymbols) -> u16 {
@@ -251,7 +257,7 @@ pub fn make_beatnik(wottasquare: &str, markov_fname: &str) -> Result<String, io:
         let mut token = markov.get_token(&last, word.score());
         if last == "" {
             token = title_case(&token);
-        } else if !last.starts_with(".") && !last.starts_with("?") {
+        } else if !token.starts_with(".") && !token.starts_with("?") && !token.starts_with(",") {
             out.push_str(" ");
         }
 

@@ -150,7 +150,6 @@ pub fn generate_markov<'a>(filename: &str) -> Result<MarkovInfo, io::Error> {
         res.add_token(last, &token);
         last = token.clone();
     }
-    println!("{:?}", res.scores.get(&0).unwrap());
     Ok(res)
 }
 

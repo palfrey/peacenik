@@ -13,6 +13,7 @@ quickcheck = "0.4.1"
 serde = "0.9"
 serde_derive = "0.9"
 serde_yaml = "0.6"
+rand = "0.3"
 
 [replace]
 "yaml-rust:0.3.5" = { git = "https://github.com/palfrey/yaml-rust.git", branch = "master", features = ["preserve_order"] }

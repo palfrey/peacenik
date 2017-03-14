@@ -8,6 +8,7 @@ extern crate enum_primitive;
 extern crate num_traits;
 extern crate clap;
 extern crate serde_yaml;
+extern crate rand;
 
 #[macro_use]
 extern crate serde_derive;

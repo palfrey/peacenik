@@ -1,4 +1,6 @@
 use common;
+use rand;
+use rand::Rng;
 use runner;
 use serde_yaml;
 use std::{io, str};
@@ -26,12 +28,12 @@ impl Token {
         return match self {
                 Token::Word(word) => word,
                 Token::Junk => String::from(" "),
-                Token::Comma => String::from(","),
-                Token::FullStop => String::from("."),
-                Token::QuestionMark => String::from("?"),
+                Token::Comma => String::from(", "),
+                Token::FullStop => String::from(". "),
+                Token::QuestionMark => String::from("? "),
                 Token::OpenBracket => String::from("("),
                 Token::CloseBracket => String::from(")"),
-                Token::Colon => String::from(":"),
+                Token::Colon => String::from(": "),
                 Token::Quote => String::from("\""),
                 Token::SingleQuote => String::from("\'"),
                 Token::Newline => String::from("\n"),
@@ -105,11 +107,73 @@ impl MarkovSymbols {
     }
 
     fn get_key(self: &MarkovSymbols) -> String {
-        self.tokens.keys().nth(0).unwrap().clone()
+        let mut rng = rand::thread_rng();
+        let keys = self.tokens.keys();
+        self.tokens.keys().nth(rng.gen_range(0, keys.len())).unwrap().clone()
+    }
+
+    fn count(self: &MarkovSymbols) -> u16 {
+        self.count
     }
 }
 
-pub type MarkovScores = BTreeMap<u8, MarkovSymbols>;
+#[derive(Serialize, Deserialize, Debug)]
+struct MarkovScores {
+    tokens: BTreeMap<u8, MarkovSymbols>,
+    count: u16,
+}
+
+fn title_case(s: &str) -> String {
+    let mut c = s.chars();
+    match c.next() {
+        None => String::new(),
+        Some(f) => f.to_uppercase().chain(c.flat_map(|t| t.to_lowercase())).collect(),
+    }
+}
+
+impl MarkovScores {
+    fn new() -> MarkovScores {
+        MarkovScores {
+            tokens: BTreeMap::new(),
+            count: 0,
+        }
+    }
+
+    fn get_key(self: &MarkovScores, score: &u8) -> Option<String> {
+        return match self.tokens.get(score) {
+            Some(score_hash) => {
+                let mut rng = rand::thread_rng();
+                let zero_score = self.tokens.get(&0).and_then(|x| Some(x.count())).unwrap_or(0);
+                if zero_score == 0 {
+                    return Some(score_hash.get_key());
+                }
+                let choice = rng.gen_range(0, self.count);
+                if choice < zero_score {
+                    let zero_token = self.tokens.get(&0).unwrap().get_key();
+                    let mut rest = self.get_key(score).unwrap();
+                    if zero_token == "." || zero_token == "?" || zero_token == "\n" {
+                        rest = title_case(&rest);
+                    }
+                    Some(zero_token + &rest)
+                } else {
+                    let normal = score_hash.get_key();
+                    if normal == "i" {
+                        Some(String::from("I"))
+                    } else {
+                        Some(normal)
+                    }
+                }
+            }
+            None => None,
+        };
+    }
+
+    fn add_token(self: &mut MarkovScores, score: u8, token: &String) {
+        let score_entry = self.tokens.entry(score).or_insert(MarkovSymbols::new());
+        score_entry.add_token(token);
+        self.count += 1;
+    }
+}
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct MarkovInfo {
@@ -127,16 +191,14 @@ impl MarkovInfo {
 
     fn add_token(self: &mut MarkovInfo, last: String, token: &String) {
         let token_score = runner::score(&token);
-        let last_hash = self.lookup.entry(last.clone()).or_insert(BTreeMap::new());
-        let score_entry = last_hash.entry(token_score).or_insert(MarkovSymbols::new());
-        score_entry.add_token(token);
-        let root_score_entry = self.scores.entry(token_score).or_insert(MarkovSymbols::new());
-        root_score_entry.add_token(token);
+        let last_hash = self.lookup.entry(last.clone()).or_insert(MarkovScores::new());
+        last_hash.add_token(token_score, token);
+        self.scores.add_token(token_score, token);
     }
 
     fn default_get(self: &MarkovInfo, score: u8) -> String {
-        match self.scores.get(&score) {
-            Some(score_hash) => score_hash.get_key(),
+        match self.scores.get_key(&score) {
+            Some(score_hash) => score_hash,
             None => {
                 warn!("Have no words with score {} so making up one", score);
                 let mut ret = String::new();
@@ -155,8 +217,8 @@ impl MarkovInfo {
         debug!("Looking up for '{}' and {}", last, score);
         return match self.lookup.get(last) {
             Some(word) => {
-                match word.get(&score) {
-                    Some(score_hash) => score_hash.get_key(),
+                match word.get_key(&score) {
+                    Some(score_hash) => score_hash,
                     None => self.default_get(score),
                 }
             }
@@ -186,8 +248,14 @@ pub fn make_beatnik(wottasquare: &str, markov_fname: &str) -> Result<String, io:
     let mut last = Token::Begin.string();
     let mut out = String::new();
     for word in words {
-        let token = markov.get_token(&last, word.score());
-        out.push_str(&format!("{} ", token));
+        let mut token = markov.get_token(&last, word.score());
+        if last == "" {
+            token = title_case(&token);
+        } else if !last.starts_with(".") && !last.starts_with("?") {
+            out.push_str(" ");
+        }
+
+        out.push_str(&token);
         last = token;
     }
     return Ok(out);

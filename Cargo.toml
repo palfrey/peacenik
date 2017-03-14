@@ -14,6 +14,9 @@ serde = "0.9"
 serde_derive = "0.9"
 serde_yaml = "0.6"
 
+[replace]
+"yaml-rust:0.3.5" = { git = "https://github.com/palfrey/yaml-rust.git", branch = "master", features = ["preserve_order"] }
+
 [dependencies.nom]
 version = "^2.1"
 features = ["verbose-errors"]

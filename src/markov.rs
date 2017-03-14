@@ -86,31 +86,57 @@ pub fn get_tokens(filename: &str) -> Result<Vec<Token>, io::Error> {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+pub struct MarkovSymbols {
+    count: u16,
+    tokens: BTreeMap<String, u16>,
+}
+
+impl MarkovSymbols {
+    fn new() -> MarkovSymbols {
+        MarkovSymbols {
+            count: 0,
+            tokens: BTreeMap::new(),
+        }
+    }
+
+    fn add_token(self: &mut MarkovSymbols, token: &String) {
+        *self.tokens.entry(token.clone()).or_insert(0) += 1;
+        self.count += 1;
+    }
+
+    fn get_key(self: &MarkovSymbols) -> String {
+        self.tokens.keys().nth(0).unwrap().clone()
+    }
+}
+
+pub type MarkovScores = BTreeMap<u8, MarkovSymbols>;
+
+#[derive(Serialize, Deserialize, Debug)]
 pub struct MarkovInfo {
-    scores: BTreeMap<u8, BTreeMap<String, u16>>,
-    lookup: BTreeMap<String, BTreeMap<u8, BTreeMap<String, u8>>>,
+    scores: MarkovScores,
+    lookup: BTreeMap<String, MarkovScores>,
 }
 
 impl MarkovInfo {
     fn new() -> MarkovInfo {
         MarkovInfo {
-            scores: BTreeMap::new(),
+            scores: MarkovScores::new(),
             lookup: BTreeMap::new(),
         }
     }
 
     fn add_token(self: &mut MarkovInfo, last: String, token: &String) {
-        let last_hash = self.lookup.entry(last.clone()).or_insert(BTreeMap::new());
         let token_score = runner::score(&token);
-        let score_entry = last_hash.entry(token_score).or_insert(BTreeMap::new());
-        *score_entry.entry(token.clone()).or_insert(0) += 1;
-        let root_score_entry = self.scores.entry(token_score).or_insert(BTreeMap::new());
-        *root_score_entry.entry(token.clone()).or_insert(0) += 1;
+        let last_hash = self.lookup.entry(last.clone()).or_insert(BTreeMap::new());
+        let score_entry = last_hash.entry(token_score).or_insert(MarkovSymbols::new());
+        score_entry.add_token(token);
+        let root_score_entry = self.scores.entry(token_score).or_insert(MarkovSymbols::new());
+        root_score_entry.add_token(token);
     }
 
     fn default_get(self: &MarkovInfo, score: u8) -> String {
         match self.scores.get(&score) {
-            Some(score_hash) => score_hash.keys().nth(0).unwrap().clone(),
+            Some(score_hash) => score_hash.get_key(),
             None => {
                 warn!("Have no words with score {} so making up one", score);
                 let mut ret = String::new();
@@ -130,7 +156,7 @@ impl MarkovInfo {
         return match self.lookup.get(last) {
             Some(word) => {
                 match word.get(&score) {
-                    Some(score_hash) => score_hash.keys().nth(0).unwrap().clone(),
+                    Some(score_hash) => score_hash.get_key(),
                     None => self.default_get(score),
                 }
             }

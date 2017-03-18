@@ -6,6 +6,7 @@ use serde_yaml;
 use std::{io, str};
 use std::collections::BTreeMap;
 use std::fs::File;
+use unicode_normalization::UnicodeNormalization;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum Token {
@@ -123,7 +124,18 @@ fn title_case(s: &str) -> String {
     let mut c = s.chars();
     match c.next() {
         None => String::new(),
-        Some(f) => f.to_uppercase().chain(c.flat_map(|t| t.to_lowercase())).collect(),
+        Some(f) => {
+            let mut s_f = String::new();
+            s_f.push(f);
+            let nfc = s_f.nfc().collect::<String>();
+            if nfc.len() != 1 {
+                // Multi-char unicode, so don't uppercase it
+                // We need to do this because otherwise we can break the scoring rules
+                s.to_lowercase()
+            } else {
+                f.to_uppercase().chain(c.flat_map(|t| t.to_lowercase())).collect()
+            }
+        }
     }
 }
 

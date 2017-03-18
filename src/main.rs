@@ -9,6 +9,7 @@ extern crate num_traits;
 extern crate clap;
 extern crate serde_yaml;
 extern crate rand;
+extern crate unicode_normalization;
 
 #[macro_use]
 extern crate serde_derive;

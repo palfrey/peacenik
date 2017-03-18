@@ -85,7 +85,7 @@ pub fn get_words_fn(filename: &str) -> Result<Vec<Word>, io::Error> {
     return common::get_words_core_fn(filename, get_word, word_filter);
 }
 
-pub fn get_words(buffer: &[u8]) -> Result<Vec<Word>, io::Error> {
+pub fn get_words(buffer: &str) -> Result<Vec<Word>, io::Error> {
     return common::get_words_core(buffer, get_word, word_filter);
 }
 
@@ -93,7 +93,7 @@ pub fn get_wottas_fn(filename: &str) -> Result<Vec<Word>, io::Error> {
     return common::get_words_core_fn(filename, get_wotta, word_filter);
 }
 
-pub fn get_wottas(buffer: &[u8]) -> Result<Vec<Word>, io::Error> {
+pub fn get_wottas(buffer: &str) -> Result<Vec<Word>, io::Error> {
     return common::get_words_core(buffer, get_wotta, word_filter);
 }
 
@@ -215,14 +215,14 @@ mod tests {
 
     #[test]
     fn test_apostrophe() {
-        let ref word = get_words("she’s".as_bytes()).unwrap()[0];
+        let ref word = get_words("she’s").unwrap()[0];
         assert_eq!(word.score, 7);
     }
 
 
     quickcheck! {
       fn word_test(xs: String) -> TestResult {
-          return match get_words(xs.as_bytes()) {
+          return match get_words(&xs) {
               Ok(_) => TestResult::passed(),
               Err(err) => {
                   println!("Error: '{}'", xs);
@@ -239,8 +239,7 @@ mod tests {
             return TestResult::discard();
         }
 
-        return match get_wottas(
-            format!("[1:{}]", xs).as_bytes()) {
+        return match get_wottas(&format!("[1:{}]", xs)) {
             Ok(_) => TestResult::passed(),
             Err(err) => {
                 println!("Error: '{}'", xs);

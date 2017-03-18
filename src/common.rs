@@ -11,7 +11,7 @@ pub fn io_str_error<T: error::Error + marker::Send + marker::Sync + 'static>(se:
     return io::Error::new(io::ErrorKind::Other, se);
 }
 
-pub fn get_words_core<Parser, Filter, RawItem, Item>(characters: &[u8],
+pub fn get_words_core<Parser, Filter, RawItem, Item>(characters: &str,
                                                      mut function: Parser,
                                                      mut filter: Filter)
                                                      -> Result<Vec<Item>, io::Error>
@@ -20,7 +20,7 @@ pub fn get_words_core<Parser, Filter, RawItem, Item>(characters: &[u8],
           Item: fmt::Debug,
           RawItem: fmt::Debug
 {
-    let mut remaining = str::from_utf8(characters).map_err(io_str_error)?;
+    let mut remaining = characters;
     let mut result = Vec::new();
     loop {
         if remaining.is_empty() {
@@ -62,7 +62,8 @@ pub fn get_words_core_fn<Parser, Filter, RawItem, Item>(filename: &str,
     let mut f = try!(File::open(filename));
     let mut buffer = Vec::new();
     try!(f.read_to_end(&mut buffer));
-    return get_words_core(buffer.as_slice(), function, filter);
+    let characters = str::from_utf8(&buffer).map_err(io_str_error)?;
+    return get_words_core(characters, function, filter);
 }
 
 fn is_alphabetic(c: char) -> bool {

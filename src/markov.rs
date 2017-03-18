@@ -73,7 +73,7 @@ pub fn get_tokens_fn(filename: &str) -> Result<Vec<Token>, io::Error> {
 }
 
 #[cfg(test)]
-pub fn get_tokens(buffer: &[u8]) -> Result<Vec<Token>, io::Error> {
+pub fn get_tokens(buffer: &str) -> Result<Vec<Token>, io::Error> {
     return common::get_words_core(buffer, get_token, empty_filter);
 }
 
@@ -268,12 +268,12 @@ mod tests {
 
     #[test]
     fn copes_with_utf_8() {
-        common::get_words_core("why—I".as_bytes(), get_token, empty_filter).unwrap();
+        common::get_words_core("why—I", get_token, empty_filter).unwrap();
     }
 
     quickcheck! {
       fn token_test(xs: String) -> TestResult {
-          return match common::get_words_core(xs.as_bytes(), get_token, empty_filter) {
+          return match common::get_words_core(&xs, get_token, empty_filter) {
               Ok(_) => TestResult::passed(),
               Err(err) => {
                   println!("Error: '{}'", xs);

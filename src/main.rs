@@ -144,7 +144,7 @@ mod tests {
             let mut info = String::new();
             info.push_str(&format!("Source_words: {:?}\n", source_words));
             let mut markov = markov::MarkovInfo::new();
-            let tokens = markov::get_tokens(source_words.as_bytes()).unwrap();
+            let tokens = markov::get_tokens(&source_words).unwrap();
             let mut last = markov::Token::Begin.string();
             for token in tokens {
                 let str_token = token.string();
@@ -157,7 +157,7 @@ mod tests {
             info.push_str(&format!("Score in: {:?}\n", xs));
             let markov_out = markov::make_beatnik(&words, &markov).unwrap();
             info.push_str(&format!("Markov out: {:?}\n", markov_out));
-            let words_out = runner::get_words(markov_out.as_bytes()).unwrap();
+            let words_out = runner::get_words(&markov_out).unwrap();
             info.push_str(&format!("Words out: {:?}\n", words_out));
             let score_out: Vec<u8> = words_out.iter().map(|x|x.score).filter(|x| x !=&0).collect();
             info.push_str(&format!("Score out: {:?}\n", score_out));

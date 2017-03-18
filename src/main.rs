@@ -24,6 +24,7 @@ mod common;
 use clap::{App, Arg, SubCommand};
 use std::fs::File;
 use std::io::{self, Write};
+use std::str;
 
 fn word_parser(items: Result<Vec<runner::Word>, io::Error>) -> Vec<runner::Word> {
     match items {
@@ -41,7 +42,7 @@ fn word_parser(items: Result<Vec<runner::Word>, io::Error>) -> Vec<runner::Word>
 
 fn main() {
     env_logger::init().unwrap();
-    let matches = App::new("peacenik")
+    let app = App::new("peacenik")
         .version("1.0")
         .author("Tom Parker <palfrey@tevp.net>")
         .about("Beatnik language tools")
@@ -91,9 +92,10 @@ fn main() {
                                  .short("o")
                                  .takes_value(true)
                                  .help("Sets the output file to use")
-                                 .required(true)))
-        .get_matches();
-    match matches.subcommand() {
+                                 .required(true)));
+    let mut usage = Vec::new();
+    app.write_help(&mut usage).unwrap();
+    match app.get_matches().subcommand() {
         ("run", Some(args)) => {
             let input_fname = args.value_of("INPUT").expect("input filename");
             let items = runner::get_words_fn(input_fname);
@@ -129,7 +131,10 @@ fn main() {
             let mut buffer = File::create(output_fname).unwrap();
             buffer.write(markov_out.as_bytes()).unwrap();
         }
-        _ => panic!("No command"),
+        _ => {
+            println!("No command!\n");
+            println!("{}", str::from_utf8(&usage).unwrap());
+        }
     }
 }
 

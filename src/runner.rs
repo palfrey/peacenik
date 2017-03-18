@@ -85,6 +85,7 @@ pub fn get_words_fn(filename: &str) -> Result<Vec<Word>, io::Error> {
     return common::get_words_core_fn(filename, get_word, word_filter);
 }
 
+#[cfg(test)]
 pub fn get_words(buffer: &str) -> Result<Vec<Word>, io::Error> {
     return common::get_words_core(buffer, get_word, word_filter);
 }
@@ -93,6 +94,7 @@ pub fn get_wottas_fn(filename: &str) -> Result<Vec<Word>, io::Error> {
     return common::get_words_core_fn(filename, get_wotta, word_filter);
 }
 
+#[cfg(test)]
 pub fn get_wottas(buffer: &str) -> Result<Vec<Word>, io::Error> {
     return common::get_words_core(buffer, get_wotta, word_filter);
 }

@@ -152,8 +152,11 @@ mod tests {
                 last = str_token;
             }
             info.push_str(&format!("Markov: {:?}\n", markov));
-            
-            let words = xs.iter().filter(|x| *x !=&0).map(|x| runner::Word{score:*x, word:String::from("")}).collect();
+
+            let words = xs.iter()
+                .filter(|x| *x !=&0)
+                .map(|x| runner::Word{score:*x, word:String::from("")})
+                .collect();
             info.push_str(&format!("Score in: {:?}\n", xs));
             let markov_out = markov::make_beatnik(&words, &markov).unwrap();
             info.push_str(&format!("Markov out: {:?}\n", markov_out));

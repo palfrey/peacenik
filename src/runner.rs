@@ -3,7 +3,7 @@
 use common::{self, word_match};
 use nom::digit;
 use num_traits::FromPrimitive;
-use std::io;
+use std::io::{self, Read};
 use std::str::{self, FromStr};
 
 #[derive(Debug)]
@@ -127,9 +127,16 @@ fn action(act: u8) -> Command {
     }
 }
 
+fn get_more_input() -> String {
+    let mut buffer = String::new();
+    io::stdin().read_to_string(&mut buffer).unwrap();
+    buffer
+}
+
 pub fn run_beatnik(words: &[Word]) {
     let mut stack: Vec<u8> = Vec::new();
     let mut pc: usize = 0;
+    let mut input = String::new();
     loop {
         debug!("'{}' = {} ({:?})",
                words[pc].word,
@@ -150,8 +157,13 @@ pub fn run_beatnik(words: &[Word]) {
                 stack.push(x.wrapping_add(y));
             }
             Command::INPUT => {
-                // FIXME: read from stdin
-                stack.push(b'a');
+                if input.len() == 0 {
+                    input += &get_more_input();
+                }
+                let new_input = input.remove(0);
+                let mut b = [0; 1];
+                new_input.encode_utf8(&mut b);
+                stack.push(b[0]);
             }
             Command::OUTPUT => print!("{}", stack.pop().expect("character on stack") as char),
             Command::SUBTRACT => {

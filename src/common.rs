@@ -64,3 +64,18 @@ pub fn get_words_core_fn<Parser, Filter, RawItem, Item>(filename: &str,
     try!(f.read_to_end(&mut buffer));
     return get_words_core(buffer.as_slice(), function, filter);
 }
+
+fn is_alphabetic(c: char) -> bool {
+    c.is_alphabetic()
+}
+
+fn alpha_or_word_chars(c: char) -> bool {
+    c.is_alphabetic() || c == '\'' || c == '’' || c == '-' || c == '\u{2014}' // em-dash
+}
+
+named!(pub word_match<&str, (&str, &str)>,
+    tuple!(
+        take_while1!(is_alphabetic),
+        take_while!(alpha_or_word_chars)
+    )
+);

@@ -1,7 +1,7 @@
 // Needed because of https://github.com/Geal/nom/issues/345
 
-use common;
-use nom::{alpha, digit};
+use common::{self, word_match};
+use nom::digit;
 use num_traits::FromPrimitive;
 use std::io;
 use std::str::{self, FromStr};
@@ -44,8 +44,9 @@ pub fn score(word: &str) -> u8 {
 
 named!(get_word<&str, RawWord>,
     alt!(
-        alpha => { |word| {
-                let word = String::from(word);
+        word_match => { |(begin, rest)| {
+                let mut word = String::from(begin);
+                word += rest;
                 let sc = score(&word.to_lowercase());
                 RawWord::Word(Word{word:word, score:sc})
             }
@@ -211,6 +212,13 @@ pub fn output_wottasquare(words: Vec<Word>) {
 mod tests {
     use quickcheck::TestResult;
     use super::{get_words, get_wottas};
+
+    #[test]
+    fn test_apostrophe() {
+        let ref word = get_words("she’s".as_bytes()).unwrap()[0];
+        assert_eq!(word.score, 7);
+    }
+
 
     quickcheck! {
       fn word_test(xs: String) -> TestResult {

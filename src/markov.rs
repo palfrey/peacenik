@@ -1,4 +1,4 @@
-use common;
+use common::{self, word_match};
 use rand;
 use rand::Rng;
 use runner;
@@ -43,21 +43,6 @@ impl Token {
     }
 }
 
-fn is_alphabetic(c: char) -> bool {
-    c.is_alphabetic()
-}
-
-fn alpha_or_word_chars(c: char) -> bool {
-    c.is_alphabetic() || c == '\'' || c == '’' || c == '-' || c == '\u{2014}' // em-dash
-}
-
-named!(word_match<&str, (&str, &str)>,
-    tuple!(
-        take_while1!(is_alphabetic),
-        take_while!(alpha_or_word_chars)
-    )
-);
-
 named!(get_token<&str, Token>,
     alt!(
         tag_s!(".") => {|_| Token::FullStop} |
@@ -83,8 +68,13 @@ fn empty_filter(x: Token) -> Option<Token> {
     Some(x)
 }
 
-pub fn get_tokens(filename: &str) -> Result<Vec<Token>, io::Error> {
+pub fn get_tokens_fn(filename: &str) -> Result<Vec<Token>, io::Error> {
     return common::get_words_core_fn(filename, get_token, empty_filter);
+}
+
+#[cfg(test)]
+pub fn get_tokens(buffer: &[u8]) -> Result<Vec<Token>, io::Error> {
+    return common::get_words_core(buffer, get_token, empty_filter);
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -196,8 +186,8 @@ impl MarkovInfo {
         }
     }
 
-    fn add_token(self: &mut MarkovInfo, last: String, token: &String) {
-        let token_score = runner::score(&token);
+    pub fn add_token(self: &mut MarkovInfo, last: String, token: &String) {
+        let token_score = runner::score(&token.to_lowercase());
         let last_hash = self.lookup.entry(last.clone()).or_insert(MarkovScores::new());
         last_hash.add_token(token_score, token);
         self.scores.add_token(token_score, token);
@@ -235,7 +225,7 @@ impl MarkovInfo {
 }
 
 pub fn generate_markov<'a>(filename: &str) -> Result<MarkovInfo, io::Error> {
-    let tokens = get_tokens(filename)?;
+    let tokens = get_tokens_fn(filename)?;
     let str_tokens = tokens.into_iter()
         .filter(|t: &Token| -> bool { if let &Token::Junk = t { false } else { true } })
         .map(|t| t.string());

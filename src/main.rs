@@ -144,38 +144,54 @@ mod tests {
     use quickcheck::TestResult;
     use runner;
 
-    quickcheck!{
-        fn wotta_two_way(xs: Vec<u8>, source_words: String) -> TestResult {
-            let mut info = String::new();
-            info.push_str(&format!("Source_words: {:?}\n", source_words));
-            let mut markov = markov::MarkovInfo::new();
-            let tokens = markov::get_tokens(&source_words).unwrap();
-            let mut last = markov::Token::Begin.string();
-            for token in tokens {
-                let str_token = token.string();
-                markov.add_token(last, &str_token);
-                last = str_token;
-            }
-            info.push_str(&format!("Markov: {:?}\n", markov));
+    fn wotta_two_way(xs: Vec<u8>, source_words: String) -> Result<(), String> {
+        let mut info = String::new();
+        info.push_str(&format!("Source_words: {:?}\n", source_words));
+        let mut markov = markov::MarkovInfo::new();
+        let tokens = markov::get_tokens(&source_words).unwrap();
+        let mut last = markov::Token::Begin.string();
+        for token in tokens {
+            let str_token = token.string();
+            markov.add_token(last, &str_token);
+            last = str_token;
+        }
+        info.push_str(&format!("Markov: {:?}\n", markov));
 
-            let words = xs.iter()
-                .filter(|x| *x !=&0)
-                .map(|x| runner::Word{score:*x, word:String::from("")})
-                .collect();
-            info.push_str(&format!("Score in: {:?}\n", xs));
-            let markov_out = markov::make_beatnik(&words, &markov).unwrap();
-            info.push_str(&format!("Markov out: {:?}\n", markov_out));
-            let words_out = runner::get_words(&markov_out).unwrap();
-            info.push_str(&format!("Words out: {:?}\n", words_out));
-            let score_out: Vec<u8> = words_out.iter().map(|x|x.score).filter(|x| x !=&0).collect();
-            info.push_str(&format!("Score out: {:?}\n", score_out));
-            let res = xs.into_iter().filter(|x| x != &0).collect::<Vec<u8>>() == score_out;
-            info.push_str(&format!("Res: {}\n", res));
-            if res {
-                TestResult::passed()
-            }
-            else {
-                TestResult::error(info)
+        let words = xs.iter()
+            .filter(|x| *x != &0)
+            .map(|x| {
+                     runner::Word {
+                         score: *x,
+                         word: String::from(""),
+                     }
+                 })
+            .collect();
+        info.push_str(&format!("Score in: {:?}\n", xs));
+        let markov_out = markov::make_beatnik(&words, &markov).unwrap();
+        info.push_str(&format!("Markov out: {:?}\n", markov_out));
+        let words_out = runner::get_words(&markov_out).unwrap();
+        info.push_str(&format!("Words out: {:?}\n", words_out));
+        let score_out: Vec<u8> = words_out.iter()
+            .map(|x| x.score)
+            .filter(|x| x != &0)
+            .collect();
+        info.push_str(&format!("Score out: {:?}\n", score_out));
+        let res = xs.into_iter().filter(|x| x != &0).collect::<Vec<u8>>() == score_out;
+        info.push_str(&format!("Res: {}\n", res));
+        if res { Ok(()) } else { Err(info) }
+    }
+
+    #[test]
+    fn test_wotta_two_way_utf() {
+        wotta_two_way(vec![3], String::from("ŉb")).unwrap();
+    }
+
+    quickcheck!{
+        fn wotta_two_way_qc(xs: Vec<u8>, source_words: String) -> TestResult {
+            let res = wotta_two_way(xs, source_words);
+            match res {
+                Ok(_) => TestResult::passed(),
+                Err(info) => TestResult::error(info)
             }
         }
     }

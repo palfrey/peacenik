@@ -26,7 +26,7 @@ use std::fs::File;
 use std::io::{self, Write};
 
 fn word_parser(items: Result<Vec<runner::Word>, io::Error>) -> Vec<runner::Word> {
-    return match items {
+    match items {
         Ok(val) => val,
         Err(err) => {
             if err.kind() == io::ErrorKind::InvalidData {
@@ -36,7 +36,7 @@ fn word_parser(items: Result<Vec<runner::Word>, io::Error>) -> Vec<runner::Word>
                 panic!("Error during parsing: {}", err);
             }
         }
-    };
+    }
 }
 
 fn main() {
@@ -46,52 +46,52 @@ fn main() {
         .author("Tom Parker <palfrey@tevp.net>")
         .about("Beatnik language tools")
         .subcommand(SubCommand::with_name("run")
-            .about("Beatnik interpreter")
-            .arg(Arg::with_name("INPUT")
-                .help("Sets the input file to use")
-                .required(true)
-                .index(1)))
+                        .about("Beatnik interpreter")
+                        .arg(Arg::with_name("INPUT")
+                                 .help("Sets the input file to use")
+                                 .required(true)
+                                 .index(1)))
         .subcommand(SubCommand::with_name("wottasquare")
-            .about("Wottasquare interpreter")
-            .arg(Arg::with_name("INPUT")
-                .help("Sets the input file to use")
-                .required(true)
-                .index(1)))
+                        .about("Wottasquare interpreter")
+                        .arg(Arg::with_name("INPUT")
+                                 .help("Sets the input file to use")
+                                 .required(true)
+                                 .index(1)))
         .subcommand(SubCommand::with_name("wottasquare-dumper")
-            .about("Wottasquare dumper")
-            .arg(Arg::with_name("INPUT")
-                .help("Sets the input file to use")
-                .required(true)
-                .index(1)))
+                        .about("Wottasquare dumper")
+                        .arg(Arg::with_name("INPUT")
+                                 .help("Sets the input file to use")
+                                 .required(true)
+                                 .index(1)))
         .subcommand(SubCommand::with_name("generate-markov")
-            .about("Markov chain generator")
-            .arg(Arg::with_name("INPUT")
-                .short("i")
-                .takes_value(true)
-                .help("Sets the input file to use")
-                .required(true))
-            .arg(Arg::with_name("OUTPUT")
-                .short("o")
-                .takes_value(true)
-                .help("Sets the output file to use")
-                .required(true)))
+                        .about("Markov chain generator")
+                        .arg(Arg::with_name("INPUT")
+                                 .short("i")
+                                 .takes_value(true)
+                                 .help("Sets the input file to use")
+                                 .required(true))
+                        .arg(Arg::with_name("OUTPUT")
+                                 .short("o")
+                                 .takes_value(true)
+                                 .help("Sets the output file to use")
+                                 .required(true)))
         .subcommand(SubCommand::with_name("markov-beatnik")
-            .about("Beatnik from Wottasquare using Markov")
-            .arg(Arg::with_name("INPUT")
-                .short("i")
-                .takes_value(true)
-                .help("Sets the input file to use")
-                .required(true))
-            .arg(Arg::with_name("MARKOV")
-                .short("m")
-                .takes_value(true)
-                .help("Sets the markov file to use")
-                .required(true))
-            .arg(Arg::with_name("OUTPUT")
-                .short("o")
-                .takes_value(true)
-                .help("Sets the output file to use")
-                .required(true)))
+                        .about("Beatnik from Wottasquare using Markov")
+                        .arg(Arg::with_name("INPUT")
+                                 .short("i")
+                                 .takes_value(true)
+                                 .help("Sets the input file to use")
+                                 .required(true))
+                        .arg(Arg::with_name("MARKOV")
+                                 .short("m")
+                                 .takes_value(true)
+                                 .help("Sets the markov file to use")
+                                 .required(true))
+                        .arg(Arg::with_name("OUTPUT")
+                                 .short("o")
+                                 .takes_value(true)
+                                 .help("Sets the output file to use")
+                                 .required(true)))
         .get_matches();
     match matches.subcommand() {
         ("run", Some(args)) => {

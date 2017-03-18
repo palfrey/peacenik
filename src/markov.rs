@@ -25,7 +25,7 @@ pub enum Token {
 
 impl Token {
     pub fn string(self: Token) -> String {
-        return match self {
+        match self {
                 Token::Word(word) => word,
                 Token::Junk => String::from(" "),
                 Token::Comma => String::from(", "),
@@ -39,7 +39,7 @@ impl Token {
                 Token::Newline => String::from("\n"),
                 Token::Begin => String::from(""),
             }
-            .to_lowercase();
+            .to_lowercase()
     }
 }
 
@@ -136,16 +136,22 @@ impl MarkovScores {
     }
 
     fn get_key(self: &MarkovScores, score: &u8) -> Option<String> {
-        return match self.tokens.get(score) {
+        match self.tokens.get(score) {
             Some(score_hash) => {
                 let mut rng = rand::thread_rng();
-                let zero_score = self.tokens.get(&0).and_then(|x| Some(x.count())).unwrap_or(0);
+                let zero_score = self.tokens
+                    .get(&0)
+                    .and_then(|x| Some(x.count()))
+                    .unwrap_or(0);
                 if zero_score == 0 {
                     return Some(score_hash.get_key());
                 }
                 let choice = rng.gen_range(0, self.count);
                 if choice < zero_score {
-                    let zero_token = self.tokens.get(&0).unwrap().get_key();
+                    let zero_token = self.tokens
+                        .get(&0)
+                        .unwrap()
+                        .get_key();
                     let mut rest = self.get_key(score).unwrap();
                     if zero_token == Token::FullStop.string() || zero_token == Token::QuestionMark.string() ||
                        zero_token == Token::Newline.string() {
@@ -162,7 +168,7 @@ impl MarkovScores {
                 }
             }
             None => None,
-        };
+        }
     }
 
     fn add_token(self: &mut MarkovScores, score: u8, token: &String) {
@@ -212,7 +218,7 @@ impl MarkovInfo {
 
     fn get_token(self: &MarkovInfo, last: &String, score: u8) -> String {
         debug!("Looking up for '{}' and {}", last, score);
-        return match self.lookup.get(last) {
+        match self.lookup.get(last) {
             Some(word) => {
                 match word.get_key(&score) {
                     Some(score_hash) => score_hash,
@@ -220,7 +226,7 @@ impl MarkovInfo {
                 }
             }
             None => self.default_get(score),
-        };
+        }
     }
 }
 
@@ -262,9 +268,9 @@ pub fn make_beatnik(words: &Vec<runner::Word>, markov: &MarkovInfo) -> Result<St
 
 #[cfg(test)]
 mod tests {
+    use super::{empty_filter, get_token};
     use common;
     use quickcheck::TestResult;
-    use super::{empty_filter, get_token};
 
     #[test]
     fn copes_with_utf_8() {

@@ -121,17 +121,20 @@ enum_from_primitive! {
 }
 
 fn action(act: u8) -> Command {
-    return match Command::from_u8(act) {
+    match Command::from_u8(act) {
         Some(val) => val,
         None => Command::NOP,
-    };
+    }
 }
 
 pub fn run_beatnik(words: &[Word]) {
     let mut stack: Vec<u8> = Vec::new();
     let mut pc: usize = 0;
     loop {
-        debug!("'{}' = {} ({:?})", words[pc].word, words[pc].score, action(words[pc].score));
+        debug!("'{}' = {} ({:?})",
+               words[pc].word,
+               words[pc].score,
+               action(words[pc].score));
         match action(words[pc].score) {
             Command::PUSH => {
                 pc += 1;
@@ -212,8 +215,8 @@ pub fn output_wottasquare(words: Vec<Word>) {
 
 #[cfg(test)]
 mod tests {
-    use quickcheck::TestResult;
     use super::{get_words, get_wottas};
+    use quickcheck::TestResult;
 
     #[test]
     fn test_apostrophe() {

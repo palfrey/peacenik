@@ -10,14 +10,11 @@ enum_primitive = "*"
 num-traits = "*"
 clap = "2.20.5"
 quickcheck = "0.4.1"
-serde = "0.9"
-serde_derive = "0.9"
-serde_yaml = "0.6"
+serde = "1.0"
+serde_derive = "1.0"
+serde_yaml = "0.8"
 rand = "0.3"
 unicode-normalization = "0.1"
-
-[replace]
-"yaml-rust:0.3.5" = { git = "https://github.com/palfrey/yaml-rust.git", branch = "master", features = ["preserve_order"] }
 
 [dependencies.nom]
 version = "^2.1"

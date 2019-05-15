@@ -1,6 +1,6 @@
 Peacenik
 ========
-[![Build Status](https://travis-ci.org/palfrey/peacenik.svg?branch=master)](https://travis-ci.org/palfrey/peacenik)
+[![Build Status](https://travis-ci.com/palfrey/peacenik.svg?branch=master)](https://travis-ci.com/palfrey/peacenik)
 
 A [Beatnik](https://esolangs.org/wiki/Beatnik) interpreter and generator
 

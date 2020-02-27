@@ -3,9 +3,9 @@ use rand;
 use rand::Rng;
 use runner;
 use serde_yaml;
-use std::{io, str};
 use std::collections::BTreeMap;
 use std::fs::File;
+use std::{io, str};
 use unicode_normalization::UnicodeNormalization;
 
 #[derive(Debug, PartialEq, Eq)]
@@ -27,20 +27,20 @@ pub enum Token {
 impl Token {
     pub fn string(self: Token) -> String {
         match self {
-                Token::Word(word) => word,
-                Token::Junk => String::from(" "),
-                Token::Comma => String::from(", "),
-                Token::FullStop => String::from(". "),
-                Token::QuestionMark => String::from("? "),
-                Token::OpenBracket => String::from("("),
-                Token::CloseBracket => String::from(")"),
-                Token::Colon => String::from(": "),
-                Token::Quote => String::from("\""),
-                Token::SingleQuote => String::from("\'"),
-                Token::Newline => String::from("\n"),
-                Token::Begin => String::from(""),
-            }
-            .to_lowercase()
+            Token::Word(word) => word,
+            Token::Junk => String::from(" "),
+            Token::Comma => String::from(", "),
+            Token::FullStop => String::from(". "),
+            Token::QuestionMark => String::from("? "),
+            Token::OpenBracket => String::from("("),
+            Token::CloseBracket => String::from(")"),
+            Token::Colon => String::from(": "),
+            Token::Quote => String::from("\""),
+            Token::SingleQuote => String::from("\'"),
+            Token::Newline => String::from("\n"),
+            Token::Begin => String::from(""),
+        }
+        .to_lowercase()
     }
 }
 
@@ -151,22 +151,18 @@ impl MarkovScores {
         match self.tokens.get(score) {
             Some(score_hash) => {
                 let mut rng = rand::thread_rng();
-                let zero_score = self.tokens
-                    .get(&0)
-                    .and_then(|x| Some(x.count()))
-                    .unwrap_or(0);
+                let zero_score = self.tokens.get(&0).and_then(|x| Some(x.count())).unwrap_or(0);
                 if zero_score == 0 {
                     return Some(score_hash.get_key());
                 }
                 let choice = rng.gen_range(0, self.count);
                 if choice < zero_score {
-                    let zero_token = self.tokens
-                        .get(&0)
-                        .unwrap()
-                        .get_key();
+                    let zero_token = self.tokens.get(&0).unwrap().get_key();
                     let mut rest = self.get_key(score).unwrap();
-                    if zero_token == Token::FullStop.string() || zero_token == Token::QuestionMark.string() ||
-                       zero_token == Token::Newline.string() {
+                    if zero_token == Token::FullStop.string()
+                        || zero_token == Token::QuestionMark.string()
+                        || zero_token == Token::Newline.string()
+                    {
                         rest = title_case(&rest);
                     }
                     Some(zero_token + &rest)
@@ -231,12 +227,10 @@ impl MarkovInfo {
     fn get_token(self: &MarkovInfo, last: &String, score: u8) -> String {
         debug!("Looking up for '{}' and {}", last, score);
         match self.lookup.get(last) {
-            Some(word) => {
-                match word.get_key(&score) {
-                    Some(score_hash) => score_hash,
-                    None => self.default_get(score),
-                }
-            }
+            Some(word) => match word.get_key(&score) {
+                Some(score_hash) => score_hash,
+                None => self.default_get(score),
+            },
             None => self.default_get(score),
         }
     }
@@ -244,8 +238,17 @@ impl MarkovInfo {
 
 pub fn generate_markov<'a>(filename: &str) -> Result<MarkovInfo, io::Error> {
     let tokens = get_tokens_fn(filename)?;
-    let str_tokens = tokens.into_iter()
-        .filter(|t: &Token| -> bool { if let &Token::Junk = t { false } else { true } })
+    let str_tokens = tokens
+        .into_iter()
+        .filter(
+            |t: &Token| -> bool {
+                if let &Token::Junk = t {
+                    false
+                } else {
+                    true
+                }
+            },
+        )
         .map(|t| t.string());
     let mut res = MarkovInfo::new();
     let mut last = Token::Begin.string();
@@ -290,14 +293,14 @@ mod tests {
     }
 
     quickcheck! {
-      fn token_test(xs: String) -> TestResult {
-          return match common::get_words_core(&xs, get_token, empty_filter) {
-              Ok(_) => TestResult::passed(),
-              Err(err) => {
-                  println!("Error: '{}'", xs);
-                  TestResult::error(format!("{:?}", err))
-              }
-          }
-      }
-  }
+        fn token_test(xs: String) -> TestResult {
+            return match common::get_words_core(&xs, get_token, empty_filter) {
+                Ok(_) => TestResult::passed(),
+                Err(err) => {
+                    println!("Error: '{}'", xs);
+                    TestResult::error(format!("{:?}", err))
+                }
+            }
+        }
+    }
 }

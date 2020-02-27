@@ -1,4 +1,4 @@
-use nom::{IResult, verbose_errors};
+use nom::{verbose_errors, IResult};
 use std::error;
 use std::fmt;
 use std::fs::File;
@@ -11,14 +11,16 @@ pub fn io_str_error<T: error::Error + marker::Send + marker::Sync + 'static>(se:
     return io::Error::new(io::ErrorKind::Other, se);
 }
 
-pub fn get_words_core<Parser, Filter, RawItem, Item>(characters: &str,
-                                                     mut function: Parser,
-                                                     mut filter: Filter)
-                                                     -> Result<Vec<Item>, io::Error>
-    where Parser: FnMut(&str) -> IResult<&str, RawItem>,
-          Filter: FnMut(RawItem) -> Option<Item>,
-          Item: fmt::Debug,
-          RawItem: fmt::Debug
+pub fn get_words_core<Parser, Filter, RawItem, Item>(
+    characters: &str,
+    mut function: Parser,
+    mut filter: Filter,
+) -> Result<Vec<Item>, io::Error>
+where
+    Parser: FnMut(&str) -> IResult<&str, RawItem>,
+    Filter: FnMut(RawItem) -> Option<Item>,
+    Item: fmt::Debug,
+    RawItem: fmt::Debug,
 {
     let mut remaining = characters;
     let mut result = Vec::new();
@@ -34,9 +36,11 @@ pub fn get_words_core<Parser, Filter, RawItem, Item>(characters: &str,
                 remaining = further;
             }
             IResult::Error(verbose_errors::Err::Position(errorkind, characters)) => {
-                let err = format!("Don't know how to parse due to {:?}: {}",
-                                  errorkind,
-                                  characters.chars().take(50).collect::<String>());
+                let err = format!(
+                    "Don't know how to parse due to {:?}: {}",
+                    errorkind,
+                    characters.chars().take(50).collect::<String>()
+                );
                 return Err(io::Error::new(io::ErrorKind::InvalidData, err));
             }
             IResult::Incomplete(_) => {
@@ -50,14 +54,16 @@ pub fn get_words_core<Parser, Filter, RawItem, Item>(characters: &str,
     return Ok(result);
 }
 
-pub fn get_words_core_fn<Parser, Filter, RawItem, Item>(filename: &str,
-                                                        function: Parser,
-                                                        filter: Filter)
-                                                        -> Result<Vec<Item>, io::Error>
-    where Parser: FnMut(&str) -> IResult<&str, RawItem>,
-          Filter: FnMut(RawItem) -> Option<Item>,
-          Item: fmt::Debug,
-          RawItem: fmt::Debug
+pub fn get_words_core_fn<Parser, Filter, RawItem, Item>(
+    filename: &str,
+    function: Parser,
+    filter: Filter,
+) -> Result<Vec<Item>, io::Error>
+where
+    Parser: FnMut(&str) -> IResult<&str, RawItem>,
+    Filter: FnMut(RawItem) -> Option<Item>,
+    Item: fmt::Debug,
+    RawItem: fmt::Debug,
 {
     let mut f = try!(File::open(filename));
     let mut buffer = Vec::new();

@@ -138,10 +138,12 @@ pub fn run_beatnik(words: &[Word]) {
     let mut pc: usize = 0;
     let mut input = String::new();
     loop {
-        debug!("'{}' = {} ({:?})",
-               words[pc].word,
-               words[pc].score,
-               action(words[pc].score));
+        debug!(
+            "'{}' = {} ({:?})",
+            words[pc].word,
+            words[pc].score,
+            action(words[pc].score)
+        );
         match action(words[pc].score) {
             Command::PUSH => {
                 pc += 1;
@@ -236,33 +238,32 @@ mod tests {
         assert_eq!(word.score, 7);
     }
 
-
     quickcheck! {
-      fn word_test(xs: String) -> TestResult {
-          return match get_words(&xs) {
+        fn word_test(xs: String) -> TestResult {
+            return match get_words(&xs) {
+                Ok(_) => TestResult::passed(),
+                Err(err) => {
+                    println!("Error: '{}'", xs);
+                    TestResult::error(format!("{:?}", err))
+                }
+            }
+        }
+
+        fn wotta_test(xs: String) -> TestResult {
+          if xs.len() == 0 {
+              return TestResult::discard();
+          }
+          if xs.find("]").is_some() {
+              return TestResult::discard();
+          }
+
+          return match get_wottas(&format!("[1:{}]", xs)) {
               Ok(_) => TestResult::passed(),
               Err(err) => {
                   println!("Error: '{}'", xs);
                   TestResult::error(format!("{:?}", err))
               }
           }
-      }
-
-      fn wotta_test(xs: String) -> TestResult {
-        if xs.len() == 0 {
-            return TestResult::discard();
         }
-        if xs.find("]").is_some() {
-            return TestResult::discard();
-        }
-
-        return match get_wottas(&format!("[1:{}]", xs)) {
-            Ok(_) => TestResult::passed(),
-            Err(err) => {
-                println!("Error: '{}'", xs);
-                TestResult::error(format!("{:?}", err))
-            }
-        }
-      }
-  }
+    }
 }

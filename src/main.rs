@@ -5,10 +5,10 @@ extern crate log;
 extern crate env_logger;
 #[macro_use]
 extern crate enum_primitive;
-extern crate num_traits;
 extern crate clap;
-extern crate serde_yaml;
+extern crate num_traits;
 extern crate rand;
+extern crate serde_yaml;
 extern crate unicode_normalization;
 
 #[macro_use]
@@ -18,9 +18,9 @@ extern crate serde_derive;
 #[macro_use]
 extern crate quickcheck;
 
-mod runner;
-mod markov;
 mod common;
+mod markov;
+mod runner;
 
 use clap::{App, Arg, SubCommand};
 use std::fs::File;
@@ -47,53 +47,77 @@ fn main() {
         .version("1.0")
         .author("Tom Parker <palfrey@tevp.net>")
         .about("Beatnik language tools")
-        .subcommand(SubCommand::with_name("run")
-                        .about("Beatnik interpreter")
-                        .arg(Arg::with_name("INPUT")
-                                 .help("Sets the input file to use")
-                                 .required(true)
-                                 .index(1)))
-        .subcommand(SubCommand::with_name("wottasquare")
-                        .about("Wottasquare interpreter")
-                        .arg(Arg::with_name("INPUT")
-                                 .help("Sets the input file to use")
-                                 .required(true)
-                                 .index(1)))
-        .subcommand(SubCommand::with_name("wottasquare-dumper")
-                        .about("Wottasquare dumper")
-                        .arg(Arg::with_name("INPUT")
-                                 .help("Sets the input file to use")
-                                 .required(true)
-                                 .index(1)))
-        .subcommand(SubCommand::with_name("generate-markov")
-                        .about("Markov chain generator")
-                        .arg(Arg::with_name("INPUT")
-                                 .short("i")
-                                 .takes_value(true)
-                                 .help("Sets the input file to use")
-                                 .required(true))
-                        .arg(Arg::with_name("OUTPUT")
-                                 .short("o")
-                                 .takes_value(true)
-                                 .help("Sets the output file to use")
-                                 .required(true)))
-        .subcommand(SubCommand::with_name("markov-beatnik")
-                        .about("Beatnik from Wottasquare using Markov")
-                        .arg(Arg::with_name("INPUT")
-                                 .short("i")
-                                 .takes_value(true)
-                                 .help("Sets the input file to use")
-                                 .required(true))
-                        .arg(Arg::with_name("MARKOV")
-                                 .short("m")
-                                 .takes_value(true)
-                                 .help("Sets the markov file to use")
-                                 .required(true))
-                        .arg(Arg::with_name("OUTPUT")
-                                 .short("o")
-                                 .takes_value(true)
-                                 .help("Sets the output file to use")
-                                 .required(true)));
+        .subcommand(
+            SubCommand::with_name("run").about("Beatnik interpreter").arg(
+                Arg::with_name("INPUT")
+                    .help("Sets the input file to use")
+                    .required(true)
+                    .index(1),
+            ),
+        )
+        .subcommand(
+            SubCommand::with_name("wottasquare")
+                .about("Wottasquare interpreter")
+                .arg(
+                    Arg::with_name("INPUT")
+                        .help("Sets the input file to use")
+                        .required(true)
+                        .index(1),
+                ),
+        )
+        .subcommand(
+            SubCommand::with_name("wottasquare-dumper")
+                .about("Wottasquare dumper")
+                .arg(
+                    Arg::with_name("INPUT")
+                        .help("Sets the input file to use")
+                        .required(true)
+                        .index(1),
+                ),
+        )
+        .subcommand(
+            SubCommand::with_name("generate-markov")
+                .about("Markov chain generator")
+                .arg(
+                    Arg::with_name("INPUT")
+                        .short("i")
+                        .takes_value(true)
+                        .help("Sets the input file to use")
+                        .required(true),
+                )
+                .arg(
+                    Arg::with_name("OUTPUT")
+                        .short("o")
+                        .takes_value(true)
+                        .help("Sets the output file to use")
+                        .required(true),
+                ),
+        )
+        .subcommand(
+            SubCommand::with_name("markov-beatnik")
+                .about("Beatnik from Wottasquare using Markov")
+                .arg(
+                    Arg::with_name("INPUT")
+                        .short("i")
+                        .takes_value(true)
+                        .help("Sets the input file to use")
+                        .required(true),
+                )
+                .arg(
+                    Arg::with_name("MARKOV")
+                        .short("m")
+                        .takes_value(true)
+                        .help("Sets the markov file to use")
+                        .required(true),
+                )
+                .arg(
+                    Arg::with_name("OUTPUT")
+                        .short("o")
+                        .takes_value(true)
+                        .help("Sets the output file to use")
+                        .required(true),
+                ),
+        );
     let mut usage = Vec::new();
     app.write_help(&mut usage).unwrap();
     match app.get_matches().subcommand() {
@@ -158,28 +182,28 @@ mod tests {
         }
         info.push_str(&format!("Markov: {:?}\n", markov));
 
-        let words = xs.iter()
+        let words = xs
+            .iter()
             .filter(|x| *x != &0)
-            .map(|x| {
-                     runner::Word {
-                         score: *x,
-                         word: String::from(""),
-                     }
-                 })
+            .map(|x| runner::Word {
+                score: *x,
+                word: String::from(""),
+            })
             .collect();
         info.push_str(&format!("Score in: {:?}\n", xs));
         let markov_out = markov::make_beatnik(&words, &markov).unwrap();
         info.push_str(&format!("Markov out: {:?}\n", markov_out));
         let words_out = runner::get_words(&markov_out).unwrap();
         info.push_str(&format!("Words out: {:?}\n", words_out));
-        let score_out: Vec<u8> = words_out.iter()
-            .map(|x| x.score)
-            .filter(|x| x != &0)
-            .collect();
+        let score_out: Vec<u8> = words_out.iter().map(|x| x.score).filter(|x| x != &0).collect();
         info.push_str(&format!("Score out: {:?}\n", score_out));
         let res = xs.into_iter().filter(|x| x != &0).collect::<Vec<u8>>() == score_out;
         info.push_str(&format!("Res: {}\n", res));
-        if res { Ok(()) } else { Err(info) }
+        if res {
+            Ok(())
+        } else {
+            Err(info)
+        }
     }
 
     #[test]
@@ -187,7 +211,7 @@ mod tests {
         wotta_two_way(vec![3], String::from("ŉb")).unwrap();
     }
 
-    quickcheck!{
+    quickcheck! {
         fn wotta_two_way_qc(xs: Vec<u8>, source_words: String) -> TestResult {
             let res = wotta_two_way(xs, source_words);
             match res {

@@ -165,9 +165,9 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
-    use markov;
+    use crate::markov;
+    use crate::runner;
     use quickcheck::TestResult;
-    use runner;
 
     fn wotta_two_way(xs: Vec<u8>, source_words: String) -> Result<(), String> {
         let mut info = String::new();

@@ -65,9 +65,9 @@ where
     Item: fmt::Debug,
     RawItem: fmt::Debug,
 {
-    let mut f = try!(File::open(filename));
+    let mut f = File::open(filename)?;
     let mut buffer = Vec::new();
-    try!(f.read_to_end(&mut buffer));
+    f.read_to_end(&mut buffer)?;
     let characters = str::from_utf8(&buffer).map_err(io_str_error)?;
     return get_words_core(characters, function, filter);
 }

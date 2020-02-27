@@ -1,7 +1,7 @@
-use common::{self, word_match};
+use crate::common::{self, word_match};
+use crate::runner;
 use rand;
 use rand::Rng;
-use runner;
 use serde_yaml;
 use std::collections::BTreeMap;
 use std::fs::File;
@@ -284,7 +284,7 @@ pub fn make_beatnik(words: &Vec<runner::Word>, markov: &MarkovInfo) -> Result<St
 #[cfg(test)]
 mod tests {
     use super::{empty_filter, get_token};
-    use common;
+    use crate::common;
     use quickcheck::TestResult;
 
     #[test]

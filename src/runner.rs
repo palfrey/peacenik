@@ -1,6 +1,6 @@
 // Needed because of https://github.com/Geal/nom/issues/345
 
-use common::{self, word_match};
+use crate::common::{self, word_match};
 use nom::digit;
 use num_traits::FromPrimitive;
 use std::io::{self, Read};
